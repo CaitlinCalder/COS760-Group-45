@@ -42,9 +42,9 @@ human_df = pd.concat([zulu_human, xhosa_human, siswati_human], ignore_index=True
 print(f"\ntotal human: {len(human_df)}")
 
 MGT_FILES = {
-    "Claude"  : os.path.join(RAW_PATH, "mgt_claude.csv"),
-    "ChatGPT" : os.path.join(RAW_PATH, "mgt_chatgbt.csv"),
-    "Gemini"  : os.path.join(RAW_PATH, "mgt_gemini.csv"),
+    "Claude"  : os.path.join(RAW_PATH, "machine_generated_claude.csv"),
+    "ChatGPT" : os.path.join(RAW_PATH, "machine_generated_chatgpt-4o.csv"),
+    "Gemini"  : os.path.join(RAW_PATH, "machine_generated_gemini-2.5-pro.csv"),
 }
 
 mgt_frames = []
@@ -81,6 +81,50 @@ combined_df = pd.concat([human_df, machine_df], ignore_index=True)
 combined_df.dropna(subset=["Text_Generated"], inplace=True)
 combined_df["Text_Generated"] = combined_df["Text_Generated"].astype(str).str.strip()
 combined_df = combined_df[combined_df["Text_Generated"] != ""]
+
+#Truncate all texts to a target character length, cutting at the nearest sentence boundary
+#to avoid mid-sentence cuts. The human Vukuzenzele articles average ~4000 chars while
+#MGT texts average ~1200-1600 chars, so we truncate to balance the length distribution.
+def truncate_to_sentence(text: str, max_chars: int = 800) -> str:
+    """
+    Truncate text to approximately max_chars, cutting at the last sentence boundary
+    before that limit. Sentence boundaries are periods, exclamation marks, or question marks
+    followed by whitespace or end-of-string.
+    """
+    if len(text) <= max_chars:
+        return text
+    
+    #Find all sentence boundaries up to max_chars
+    #Pattern: period/exclamation/question followed by space or end-of-string
+    truncated = text[:max_chars]
+    
+    #Find the last sentence boundary in the truncated portion
+    #Look for . ! ? followed by space or end
+    import re
+    boundaries = list(re.finditer(r'[.!?](?=\s|$)', truncated))
+    
+    if boundaries:
+        #Cut at the last sentence boundary found
+        last_boundary = boundaries[-1].end()
+        return text[:last_boundary].strip()
+    else:
+        #No sentence boundary found — fall back to character truncation
+        return truncated.strip()
+
+TARGET_LENGTH = 800
+print(f"\ntruncating texts to ~{TARGET_LENGTH} chars at sentence boundaries...")
+before_human = combined_df.loc[combined_df["Label"]==0, "Text_Generated"].str.len().mean()
+before_mgt   = combined_df.loc[combined_df["Label"]==1, "Text_Generated"].str.len().mean()
+
+combined_df["Text_Generated"] = combined_df["Text_Generated"].apply(
+    lambda t: truncate_to_sentence(t, TARGET_LENGTH)
+)
+
+after_human = combined_df.loc[combined_df["Label"]==0, "Text_Generated"].str.len().mean()
+after_mgt   = combined_df.loc[combined_df["Label"]==1, "Text_Generated"].str.len().mean()
+
+print(f"  human avg: {before_human:.0f} -> {after_human:.0f} chars")
+print(f"  MGT avg  : {before_mgt:.0f} -> {after_mgt:.0f} chars")
 
 print(f"\ntotal after cleaning: {len(combined_df)}")
 print(combined_df["Language_Code"].value_counts())

@@ -42,10 +42,11 @@ print(f"\ntotal records: {len(df)}")
 print(df["Language_Code"].value_counts())
 print(df["Label"].value_counts())
 
-#Truncate to 800 chars so text length cannot act as a separating signal, without this cap the classifier trivially separates classes by length alone.
-TEXT_CAP = 800
-df["Text_Generated"] = df["Text_Generated"].str[:TEXT_CAP]
+print(f"\ntotal records: {len(df)}")
+print(f"by language: {df['Language_Code'].value_counts().to_dict()}")
+print(f"by label: {df['Label'].value_counts().to_dict()}")
 
+#Texts are already truncated to ~800 chars at sentence boundaries in dataset_prep.py
 train_df   = df[df["Language_Code"].isin(["zu", "xh"])].copy()
 siswati_df = df[df["Language_Code"] == "ss"].copy()
 
@@ -61,14 +62,20 @@ X_train, X_test, y_train, y_test = train_test_split(
 
 print(f"\ntrain: {len(X_train)}  test: {len(X_test)}")
 
-#TF-IDF vectoriser
+#TF-IDF vectorizer using character n-grams to capture stylistic patterns
+#rather than topic vocabulary. Character n-grams (3-6 chars) capture morphological
+#and stylistic fingerprints like verb suffixes, punctuation patterns, and spacing
+#habits that distinguish LLM-generated text from human writing, while being
+#robust to topic/domain shifts.
+#analyzer='char_wb' extracts character n-grams within word boundaries
+#min_df=5 filters out very rare character sequences
 tfidf = TfidfVectorizer(
     max_features=10000,
-    ngram_range=(1, 2),
+    ngram_range=(3, 6),
     sublinear_tf=True,
     strip_accents=None,
-    analyzer="word",
-    min_df=2
+    analyzer="char_wb",
+    min_df=5
 )
 
 X_train_tfidf   = tfidf.fit_transform(X_train)
@@ -142,11 +149,11 @@ metrics_siswati, y_pred_siswati, _ = evaluate_model(
 pipeline = Pipeline([
     ("tfidf", TfidfVectorizer(
         max_features=10000,
-        ngram_range=(1, 2),
+        ngram_range=(3, 6),
         sublinear_tf=True,
         strip_accents=None,
-        analyzer="word",
-        min_df=2
+        analyzer="char_wb",
+        min_df=5
     )),
     ("clf", SGDClassifier(
         loss="log_loss",

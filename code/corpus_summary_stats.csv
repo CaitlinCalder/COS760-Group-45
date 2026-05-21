@@ -1,0 +1,6 @@
+,word_count,word_count,word_count,char_count,char_count,char_count,sent_count,sent_count,sent_count,avg_sent_len,avg_sent_len,avg_sent_len,avg_word_len,avg_word_len,avg_word_len,ttr,ttr,ttr,punct_density,punct_density,punct_density,hapax_ratio,hapax_ratio,hapax_ratio,vocab_size,vocab_size,vocab_size,para_count,para_count,para_count
+,mean,median,std,mean,median,std,mean,median,std,mean,median,std,mean,median,std,mean,median,std,mean,median,std,mean,median,std,mean,median,std,mean,median,std
+lang,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+Siswati,436.701,386.0,173.149,4013.866,3475.0,1689.842,28.575,27.0,12.409,15.671,16.0,3.347,7.976,7.958,0.576,0.811,0.817,0.057,0.029,0.021,0.082,0.877,0.879,0.037,349.449,320.0,130.579,1.323,1.0,1.447
+isiXhosa,440.656,416.5,162.725,3920.68,3674.5,1509.696,28.398,27.0,11.03,15.947,16.131,3.02,7.738,7.795,0.576,0.817,0.82,0.048,0.024,0.022,0.007,0.879,0.882,0.031,356.891,332.0,125.588,1.297,1.0,1.662
+isiZulu,442.632,429.0,167.912,4039.184,3970.0,1629.237,29.056,28.0,12.232,15.731,15.462,2.912,7.93,7.997,0.579,0.811,0.816,0.047,0.023,0.022,0.006,0.878,0.882,0.029,355.448,342.0,127.235,1.248,1.0,1.052
