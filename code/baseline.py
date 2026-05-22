@@ -62,11 +62,29 @@ X_train, X_test, y_train, y_test = train_test_split(
 
 print(f"\ntrain: {len(X_train)}  test: {len(X_test)}")
 
+#Preprocessing: lowercase and remove punctuation to eliminate capitalization
+#and punctuation leakage. This forces the model to focus on morphological and
+#lexical patterns rather than superficial formatting differences.
+#Human texts have ~18 capitals vs MGT ~6 capitals (major leakage)
+#Human texts have ~4 commas vs MGT ~2 commas (structural leakage)
+import string
+
+def clean_for_tfidf(text):
+    """Remove punctuation and lowercase to eliminate formatting leakage."""
+    text = text.lower()
+    text = text.translate(str.maketrans('', '', string.punctuation))
+    text = ' '.join(text.split())  # Normalize whitespace
+    return text
+
+print("\npreprocessing: lowercasing and removing punctuation...")
+X_train_clean   = X_train.apply(clean_for_tfidf)
+X_test_clean    = X_test.apply(clean_for_tfidf)
+X_siswati_clean = siswati_df["Text_Generated"].apply(clean_for_tfidf)
+
 #TF-IDF vectorizer using character n-grams to capture stylistic patterns
 #rather than topic vocabulary. Character n-grams (3-6 chars) capture morphological
-#and stylistic fingerprints like verb suffixes, punctuation patterns, and spacing
-#habits that distinguish LLM-generated text from human writing, while being
-#robust to topic/domain shifts.
+#and stylistic fingerprints like verb suffixes and word patterns that distinguish
+#LLM-generated text from human writing, while being robust to topic/domain shifts.
 #analyzer='char_wb' extracts character n-grams within word boundaries
 #min_df=5 filters out very rare character sequences
 tfidf = TfidfVectorizer(
@@ -78,9 +96,9 @@ tfidf = TfidfVectorizer(
     min_df=5
 )
 
-X_train_tfidf   = tfidf.fit_transform(X_train)
-X_test_tfidf    = tfidf.transform(X_test)
-X_siswati_tfidf = tfidf.transform(siswati_df["Text_Generated"])
+X_train_tfidf   = tfidf.fit_transform(X_train_clean)
+X_test_tfidf    = tfidf.transform(X_test_clean)
+X_siswati_tfidf = tfidf.transform(X_siswati_clean)
 y_siswati       = siswati_df["Label"]
 
 print(f"\nTF-IDF vocab size : {len(tfidf.vocabulary_)}")
@@ -146,6 +164,10 @@ metrics_siswati, y_pred_siswati, _ = evaluate_model(
 )
 
 # 5-fold stratified cross-validation on the full training pool
+# Apply same preprocessing (lowercase + remove punctuation)
+X_all_clean = train_df["Text_Generated"].apply(clean_for_tfidf)
+y_all       = train_df["Label"]
+
 pipeline = Pipeline([
     ("tfidf", TfidfVectorizer(
         max_features=10000,
@@ -164,12 +186,10 @@ pipeline = Pipeline([
     ))
 ])
 
-skf      = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-X_all    = train_df["Text_Generated"]
-y_all    = train_df["Label"]
+skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
 
-cv_preds  = cross_val_predict(pipeline, X_all, y_all, cv=skf)
-cv_probas = cross_val_predict(pipeline, X_all, y_all, cv=skf, method="predict_proba")[:, 1]
+cv_preds  = cross_val_predict(pipeline, X_all_clean, y_all, cv=skf)
+cv_probas = cross_val_predict(pipeline, X_all_clean, y_all, cv=skf, method="predict_proba")[:, 1]
 
 cv_metrics = {
     "label"    : "5-fold cross validation",
@@ -195,8 +215,10 @@ for llm in sorted(train_df["Model_Identifier"].unique()):
     y_test_llm     = y_test[mask]
     if len(X_test_llm) == 0:
         continue
+    # Apply same preprocessing
+    X_test_llm_clean = X_test_llm.apply(clean_for_tfidf)
     m, _, _ = evaluate_model(
-        clf, tfidf.transform(X_test_llm), y_test_llm,
+        clf, tfidf.transform(X_test_llm_clean), y_test_llm,
         label=f"cross-LLM in-language ({llm})"
     )
     llm_metrics[llm] = m
@@ -212,8 +234,10 @@ for llm in sorted(siswati_df["Model_Identifier"].unique()):
     y_ss_llm = siswati_df.loc[mask, "Label"]
     if len(X_ss_llm) == 0:
         continue
+    # Apply same preprocessing
+    X_ss_llm_clean = X_ss_llm.apply(clean_for_tfidf)
     m, _, _ = evaluate_model(
-        clf, tfidf.transform(X_ss_llm), y_ss_llm,
+        clf, tfidf.transform(X_ss_llm_clean), y_ss_llm,
         label=f"cross-LLM Siswati zero-shot ({llm})"
     )
     llm_siswati_metrics[llm] = m

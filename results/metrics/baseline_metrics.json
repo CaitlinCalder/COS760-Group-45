@@ -1,26 +1,26 @@
 {
   "in_language": {
     "label": "in-language test (isiZulu + isiXhosa)",
-    "precision": 0.9918,
-    "recall": 0.9931,
-    "macro_f1": 0.9924,
-    "mcc": 0.9849,
+    "precision": 0.9839,
+    "recall": 0.9861,
+    "macro_f1": 0.9848,
+    "mcc": 0.97,
     "auc_roc": 1.0,
     "auc_pr": 1.0
   },
   "siswati_zeroshot": {
     "label": "zero-shot cross-lingual test (Siswati)",
-    "precision": 0.9668,
-    "recall": 0.9409,
-    "macro_f1": 0.9514,
-    "mcc": 0.9074,
-    "auc_roc": 0.9991,
-    "auc_pr": 0.9984
+    "precision": 0.9276,
+    "recall": 0.8591,
+    "macro_f1": 0.8789,
+    "mcc": 0.7837,
+    "auc_roc": 0.9964,
+    "auc_pr": 0.9941
   },
   "cross_validation": {
     "label": "5-fold cross validation",
-    "macro_f1": 0.9924,
-    "mcc": 0.9847,
+    "macro_f1": 0.9954,
+    "mcc": 0.9909,
     "auc_roc": 0.9999
   },
   "cross_llm_chatgpt-4o": {
@@ -62,8 +62,8 @@
   "cross_llm_siswati_claude-sonnet-4-6": {
     "label": "cross-LLM Siswati zero-shot (claude-sonnet-4-6)",
     "precision": 0.5,
-    "recall": 0.42,
-    "macro_f1": 0.4565,
+    "recall": 0.27,
+    "macro_f1": 0.3506,
     "mcc": 0.0,
     "auc_roc": NaN,
     "auc_pr": NaN
@@ -71,8 +71,8 @@
   "cross_llm_siswati_gemini-2.5-pro": {
     "label": "cross-LLM Siswati zero-shot (gemini-2.5-pro)",
     "precision": 0.5,
-    "recall": 0.4405,
-    "macro_f1": 0.4684,
+    "recall": 0.4048,
+    "macro_f1": 0.4474,
     "mcc": 0.0,
     "auc_roc": NaN,
     "auc_pr": NaN

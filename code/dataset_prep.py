@@ -71,6 +71,59 @@ machine_df["Text_Generated"] = machine_df["Text_Generated"].apply(clean_text)
 after  = machine_df["Text_Generated"].str.contains(r'\d+-\d+-\d+', regex=True).sum()
 print(f"\nartefact rows cleaned: {before} -> {after}")
 
+#Remove first sentence from MGT texts that start with formulaic patterns
+#These patterns appear in 25-34% of MGT texts but <1% of human texts, creating
+#trivial detection shortcuts. Removing the first sentence makes the task more honest.
+FORMULAIC_STARTS = [
+    "Ngaphezulu",      # "More than" - appears in 25-34% of MGT, 0-0.6% human
+    "Abahlali",        # "Residents" - appears in 17-19% of MGT
+    "Emaphandleni",    # "In rural areas" - appears in 8-28% of MGT
+    "Umasipala",       # "Municipality" - common in MGT
+    "Ekhuluma",        # "Speaking" - common in MGT
+    "Ngemuva",         # "After" - common in MGT
+]
+
+def remove_formulaic_first_sentence(text: str, is_mgt: bool) -> str:
+    """
+    If text is MGT and starts with a formulaic pattern, remove the first sentence.
+    This prevents the model from learning trivial shortcuts based on opening words.
+    """
+    if not is_mgt:
+        return text
+    
+    #Check if text starts with any formulaic pattern
+    starts_with_formula = any(text.startswith(pattern) for pattern in FORMULAIC_STARTS)
+    
+    if not starts_with_formula:
+        return text
+    
+    #Find the first sentence boundary (. ! ?)
+    match = re.search(r'[.!?](?=\s|$)', text)
+    
+    if match:
+        #Remove everything up to and including the first sentence boundary
+        remaining = text[match.end():].strip()
+        if len(remaining) > 100:  # Only remove if there's substantial text remaining
+            return remaining
+    
+    #If no sentence boundary found or remaining text too short, return original
+    return text
+
+before_removal = machine_df["Text_Generated"].apply(
+    lambda t: any(t.startswith(p) for p in FORMULAIC_STARTS)
+).sum()
+
+machine_df["Text_Generated"] = machine_df.apply(
+    lambda row: remove_formulaic_first_sentence(row["Text_Generated"], is_mgt=True),
+    axis=1
+)
+
+after_removal = machine_df["Text_Generated"].apply(
+    lambda t: any(t.startswith(p) for p in FORMULAIC_STARTS)
+).sum()
+
+print(f"\nformulaic first sentences removed: {before_removal} -> {after_removal}")
+
 print(f"\ntotal MGT: {len(machine_df)}")
 print(machine_df["Language_Code"].value_counts())
 print(machine_df["Model_Identifier"].value_counts())
