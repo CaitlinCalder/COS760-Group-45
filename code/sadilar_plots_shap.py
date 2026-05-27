@@ -1,3 +1,4 @@
+#NEW
 """
 SADiLaR Phase 3 — Visualisation and SHAP Analysis
 
@@ -20,7 +21,7 @@ import seaborn as sns
 
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import ConfusionMatrixDisplay, f1_score
+from sklearn.metrics import ConfusionMatrixDisplay, f1_score, roc_auc_score, average_precision_score, precision_score, recall_score, matthews_corrcoef
 
 BASE_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -194,8 +195,8 @@ plt.close()
 
 #three-phase comparison bar chart 
 print("Plotting 3-phase comparison...")
-metrics_labels = ["Precision", "Recall", "Macro F1"]
-metric_keys    = ["precision", "recall", "macro_f1"]
+metrics_labels = ["Precision", "Recall", "Macro F1", "AUC-ROC", "AUC-PR"]
+metric_keys    = ["precision", "recall", "macro_f1", "auc_roc", "auc_pr"]
 
 p1_vals = [phase1.get(k, float("nan")) for k in metric_keys]
 p2_vals = [phase2.get(k, float("nan")) for k in metric_keys]
@@ -255,6 +256,56 @@ for col, title in PLOT_FEATURES:
     plt.savefig(os.path.join(RESULTS_DIR, f"p3_{col}_boxplot.png"), dpi=300)
     plt.close()
 
+#cross-LLM generalisation bar chart
+print("Plotting cross-LLM generalisation...")
+if "Model_Identifier" in test_df.columns:
+    llm_f1s    = {}
+    llm_aucs   = {}
+    for llm in sorted(test_df["Model_Identifier"].unique()):
+        if llm == "human":
+            continue
+        human_mask   = test_df["Label"] == 0
+        machine_mask = (test_df["Label"] == 1) & (test_df["Model_Identifier"] == llm)
+        subset_idx   = test_df[human_mask | machine_mask].index
+        X_llm = test_df.loc[subset_idx, ALL_FEATURE_COLUMNS]
+        y_llm = test_df.loc[subset_idx, "Label"]
+        if len(y_llm.unique()) < 2:
+            continue
+        y_llm_pred  = model.predict(X_llm)
+        y_llm_proba = model.predict_proba(X_llm)[:, 1]
+        llm_f1s[llm]  = round(f1_score(y_llm, y_llm_pred, average="macro"), 4)
+        llm_aucs[llm] = round(roc_auc_score(y_llm, y_llm_proba), 4)
+ 
+    if llm_f1s:
+        llm_names = list(llm_f1s.keys())
+        f1_vals   = [llm_f1s[l] for l in llm_names]
+        auc_vals  = [llm_aucs[l] for l in llm_names]
+ 
+        x     = np.arange(len(llm_names))
+        width = 0.35
+ 
+        fig, ax = plt.subplots(figsize=(9, 5))
+        b1 = ax.bar(x - width / 2, f1_vals,  width, label="Macro F1",  color="#55A868", edgecolor="white")
+        b2 = ax.bar(x + width / 2, auc_vals, width, label="AUC-ROC",   color="#C44E52", edgecolor="white")
+ 
+        for bars in [b1, b2]:
+            for bar in bars:
+                h = bar.get_height()
+                ax.text(bar.get_x() + bar.get_width() / 2, h + 0.005,
+                        f"{h:.3f}", ha="center", va="bottom", fontsize=9)
+ 
+        ax.set_xticks(x)
+        ax.set_xticklabels(llm_names, fontsize=11)
+        ax.set_ylim(0, 1.15)
+        ax.set_ylabel("Score")
+        ax.set_title("Phase 3 Cross-LLM Generalisation - Siswati Zero-Shot\n"
+                     "(Augmented AfroXLMR + SADiLaR)", fontweight="bold")
+        ax.legend()
+        plt.tight_layout()
+        plt.savefig(os.path.join(RESULTS_DIR, "p3_cross_llm_bar.png"), dpi=300)
+        plt.close()
+        print("  saved: p3_cross_llm_bar.png")
+ 
 #SHAP analysis on the augmented model reveals whether detection decisions rely on AfroXLMR's representations (prob_human/prob_machine) or linguistic features
 print("Running SHAP analysis on augmented model...")
 

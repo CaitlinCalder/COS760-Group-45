@@ -1,3 +1,4 @@
+#NEW
 """
 SADiLaR Phase 3 — Feature-Augmented Classifier
 
@@ -30,6 +31,10 @@ from sklearn.metrics import (
     confusion_matrix,
     matthews_corrcoef,
     f1_score,
+    roc_auc_score,
+    average_precision_score,
+    precision_score,
+    recall_score
 )
 
 BASE_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -141,12 +146,15 @@ model.fit(X_train, y_train)
 
 print("Evaluating on Siswati (zero-shot)...")
 y_pred = model.predict(X_test)
+y_proba= model.predict_proba(X_test)[:, 1]
 
 report = classification_report(y_test, y_pred, output_dict=True)
 report_text = classification_report(y_test, y_pred)
 cm = confusion_matrix(y_test, y_pred)
 macro_f1 = f1_score(y_test, y_pred, average="macro")
 mcc = matthews_corrcoef(y_test, y_pred)
+auc_roc     = round(roc_auc_score(y_test, y_proba), 4)
+auc_pr      = round(average_precision_score(y_test, y_proba), 4)
 
 feature_importance = {
     feature: float(importance)
@@ -175,6 +183,8 @@ phase3 = {
     "mcc": round(float(mcc), 4),
     "precision": round(float(report["macro avg"]["precision"]), 4),
     "recall": round(float(report["macro avg"]["recall"]), 4),
+    "auc_roc":   auc_roc,
+    "auc_pr":    auc_pr,
 }
 
 print("\n" + "=" * 65)
@@ -194,6 +204,51 @@ print("\nClassification Report (Phase 3 — Siswati):")
 print(report_text)
 print(f"Macro F1 : {macro_f1:.4f}")
 print(f"MCC      : {mcc:.4f}")
+print(f"AUC-ROC  : {auc_roc:.4f}")
+print(f"AUC-PR   : {auc_pr:.4f}")
+
+#cross-LLM breakdown on Siswati to check if the augmented model generalises equally across ChatGPT, Claude, Gemini
+print("\n" + "=" * 65)
+print("CROSS-LLM GENERALISATION — Siswati Zero-Shot (Phase 3)")
+print("=" * 65)
+
+if "Model_Identifier" in test_df.columns:
+    llm_results = {}
+    for llm in sorted(test_df["Model_Identifier"].unique()):
+        if llm == "human":
+            continue
+
+        human_mask   = test_df["Label"] == 0
+        machine_mask = (test_df["Label"] == 1) & (test_df["Model_Identifier"] == llm)
+        subset_idx   = test_df[human_mask | machine_mask].index
+
+        X_llm = test_df.loc[subset_idx, ALL_FEATURE_COLUMNS]
+        y_llm = test_df.loc[subset_idx, "Label"]
+
+        if len(y_llm.unique()) < 2:
+            continue
+
+        y_llm_pred  = model.predict(X_llm)
+        y_llm_proba = model.predict_proba(X_llm)[:, 1]
+
+        llm_metrics = {
+            "n_machine":  int(machine_mask.sum()),
+            "precision":  round(precision_score(y_llm, y_llm_pred, average="macro", zero_division=0), 4),
+            "recall":     round(recall_score(y_llm, y_llm_pred, average="macro", zero_division=0), 4),
+            "macro_f1":   round(f1_score(y_llm, y_llm_pred, average="macro", zero_division=0), 4),
+            "mcc":        round(matthews_corrcoef(y_llm, y_llm_pred), 4),
+            "auc_roc":    round(roc_auc_score(y_llm, y_llm_proba), 4),
+            "auc_pr":     round(average_precision_score(y_llm, y_llm_proba), 4),
+        }
+        llm_results[llm] = llm_metrics
+
+        print(f"\n  {llm} (n_machine={llm_metrics['n_machine']})")
+        for k, v in llm_metrics.items():
+            if k != "n_machine":
+                print(f"    {k:<12}: {v}")
+else:
+    print("  Model_Identifier column not found in test set — skipping cross-LLM breakdown")
+    llm_results = {}
 
 print("\nFeature Importance (what the augmented model relies on):")
 for feature, importance in sorted_feature_importance.items():
