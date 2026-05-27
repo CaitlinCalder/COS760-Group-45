@@ -1,39 +1,51 @@
 """
-SADiLaR Visualisation and SHAP Analysis
+SADiLaR Phase 3 — Visualisation and SHAP Analysis
 
-Creates plots and SHAP explanations for the SADiLaR
-morphology-based classifier.
+Creates plots and SHAP explanations for the Phase 3 augmented classifier.
+SHAP is applied to the combined model (AfroXLMR probabilities + SADiLaR
+features) to reveal whether detection relies on AfroXLMR's learned
+representations or deeper linguistic/morphological structure.
+
+Also produces a 3-phase comparison chart (Phase 1 vs 2 vs 3).
 """
 
 import os
+import json
+import torch
+import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import shap
+import seaborn as sns
 
-from sklearn.model_selection import train_test_split
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import ConfusionMatrixDisplay
-
+from sklearn.metrics import ConfusionMatrixDisplay, f1_score
 
 BASE_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 FEATURES_FILE = os.path.join(
-    BASE_PATH,
-    "data",
-    "processed",
-    "sadilar_morph_features.csv"
+    BASE_PATH, "data", "processed", "sadilar_morph_features.csv"
 )
 
-# Create dedicated SADiLaR results folder
-RESULTS_DIR = os.path.join(
-    BASE_PATH,
-    "results",
-    "sadilar_analysis"
+AFROXLMR_MODEL_PATH = os.path.join(
+    "/content/drive/My Drive/afroxlmr_detector", "best_model"
 )
 
+PHASE1_METRICS_JSON = os.path.join(
+    "/content/drive/MyDrive/afroxlmr_detector", "baseline_metrics.json"
+)
+
+PHASE2_METRICS_JSON = os.path.join(
+    "/content/drive/MyDrive/afroxlmr_detector", "phase2_metrics.json"
+)
+
+RESULTS_DIR = os.path.join(BASE_PATH, "results", "sadilar_analysis")
 os.makedirs(RESULTS_DIR, exist_ok=True)
 
-FEATURE_COLUMNS = [
+MAX_LENGTH = 512
+
+SADILAR_FEATURE_COLUMNS = [
     "word_count",
     "matched_words",
     "unmatched_words",
@@ -41,206 +53,248 @@ FEATURE_COLUMNS = [
     "avg_word_length",
     "unique_word_ratio",
     "unique_morph_analysis_count",
-    "morph_diversity_ratio"
+    "morph_diversity_ratio",
+    "word_repetition_rate",
+    "bigram_repetition_rate",
 ]
 
+ALL_FEATURE_COLUMNS = ["prob_human", "prob_machine"] + SADILAR_FEATURE_COLUMNS
+
+# Human-readable labels for SHAP plots
+FEATURE_LABELS = {
+    "prob_human": "AfroXLMR: P(Human)",
+    "prob_machine": "AfroXLMR: P(Machine)",
+    "word_count": "Word Count",
+    "matched_words": "SADiLaR Matched Words",
+    "unmatched_words": "SADiLaR Unmatched Words",
+    "sadilar_coverage": "SADiLaR Coverage",
+    "avg_word_length": "Avg Word Length",
+    "unique_word_ratio": "Lexical Diversity (Unique Word Ratio)",
+    "unique_morph_analysis_count": "Unique Morphological Analyses",
+    "morph_diversity_ratio": "Morphological Diversity Ratio",
+    "word_repetition_rate": "Word Repetition Rate",
+    "bigram_repetition_rate": "Bigram Repetition Rate",
+}
+
+
+def extract_afroxlmr_probabilities(texts, model, tokenizer, device, batch_size=16):
+    all_probs = []
+    model.eval()
+    for i in range(0, len(texts), batch_size):
+        batch_texts = texts[i: i + batch_size]
+        inputs = tokenizer(
+            batch_texts,
+            padding=True,
+            truncation=True,
+            max_length=MAX_LENGTH,
+            return_tensors="pt",
+        ).to(device)
+        with torch.no_grad():
+            logits = model(**inputs).logits
+        probs = torch.softmax(logits, dim=-1).cpu().numpy()
+        all_probs.append(probs)
+    return np.vstack(all_probs)
+
+
+# --- Load data and rebuild model (mirrors sadilar_classifier.py) ---
 print("Loading SADiLaR feature dataset...")
 df = pd.read_csv(FEATURES_FILE)
+df["Language_Code"] = df["Language_Code"].str.strip().str.lower()
 
-X = df[FEATURE_COLUMNS]
-y = df["Label"]
+train_df = df[df["Language_Code"].isin(["zu", "xh"])].copy()
+test_df  = df[df["Language_Code"] == "ss"].copy()
 
-print("Splitting dataset...")
+print("Loading fine-tuned AfroXLMR from Phase 2...")
+device    = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+tokenizer = AutoTokenizer.from_pretrained(AFROXLMR_MODEL_PATH)
+afroxlmr  = AutoModelForSequenceClassification.from_pretrained(
+    AFROXLMR_MODEL_PATH
+).to(device)
 
-X_train, X_test, y_train, y_test = train_test_split(
-    X,
-    y,
-    test_size=0.2,
-    random_state=42,
-    stratify=y
+print("Extracting AfroXLMR probabilities...")
+train_probs = extract_afroxlmr_probabilities(
+    train_df["Text_Generated"].tolist(), afroxlmr, tokenizer, device
+)
+test_probs = extract_afroxlmr_probabilities(
+    test_df["Text_Generated"].tolist(), afroxlmr, tokenizer, device
 )
 
-print("Training Random Forest model...")
+train_df = train_df.copy()
+test_df  = test_df.copy()
+train_df["prob_human"]   = train_probs[:, 0]
+train_df["prob_machine"] = train_probs[:, 1]
+test_df["prob_human"]    = test_probs[:, 0]
+test_df["prob_machine"]  = test_probs[:, 1]
 
-model = RandomForestClassifier(
-    n_estimators=200,
-    random_state=42
-)
+X_train = train_df[ALL_FEATURE_COLUMNS]
+y_train = train_df["Label"]
+X_test  = test_df[ALL_FEATURE_COLUMNS]
+y_test  = test_df["Label"]
 
+print("Training augmented Random Forest...")
+model = RandomForestClassifier(n_estimators=200, random_state=42)
 model.fit(X_train, y_train)
-
-print("Making predictions...")
 y_pred = model.predict(X_test)
 
-# confusion matrix
+# --- Load phase metrics for comparison ---
+phase1, phase2 = {}, {}
 
-print("Creating confusion matrix plot...")
+if os.path.exists(PHASE1_METRICS_JSON):
+    with open(PHASE1_METRICS_JSON) as f:
+        phase1 = json.load(f).get("siswati_zeroshot", {})
 
+if os.path.exists(PHASE2_METRICS_JSON):
+    with open(PHASE2_METRICS_JSON) as f:
+        phase2 = json.load(f).get("siswati_crosslingual", {})
+
+from sklearn.metrics import classification_report
+report = classification_report(y_test, y_pred, output_dict=True)
+
+phase3 = {
+    "macro_f1":  round(float(f1_score(y_test, y_pred, average="macro")), 4),
+    "precision": round(float(report["macro avg"]["precision"]), 4),
+    "recall":    round(float(report["macro avg"]["recall"]), 4),
+}
+
+# ── 1. Confusion matrix ──────────────────────────────────────────────────────
+print("Plotting confusion matrix...")
 fig, ax = plt.subplots(figsize=(6, 5))
-
 ConfusionMatrixDisplay.from_predictions(
-    y_test,
-    y_pred,
+    y_test, y_pred,
     display_labels=["Human", "Machine"],
-    ax=ax
+    ax=ax,
 )
-
-plt.title("SADiLaR Classifier Confusion Matrix")
+ax.set_title("Phase 3 Augmented Classifier — Confusion Matrix\n(Siswati Zero-Shot)")
 plt.tight_layout()
-
-plt.savefig(
-    os.path.join(
-        RESULTS_DIR,
-        "sadilar_confusion_matrix.png"
-    ),
-    dpi=300
-)
-
+plt.savefig(os.path.join(RESULTS_DIR, "p3_confusion_matrix.png"), dpi=300)
 plt.close()
 
-#feature importance
-
-print("Creating feature importance plot...")
-
+# ── 2. Feature importance (AfroXLMR vs SADiLaR) ─────────────────────────────
+print("Plotting feature importance...")
 importance_df = pd.DataFrame({
-    "Feature": FEATURE_COLUMNS,
-    "Importance": model.feature_importances_
-})
+    "Feature":    [FEATURE_LABELS.get(f, f) for f in ALL_FEATURE_COLUMNS],
+    "Importance": model.feature_importances_,
+    "Source":     ["AfroXLMR" if f.startswith("prob_") else "SADiLaR"
+                   for f in ALL_FEATURE_COLUMNS],
+}).sort_values("Importance", ascending=True)
 
-importance_df = importance_df.sort_values(
-    by="Importance",
-    ascending=True
-)
+colours = importance_df["Source"].map({"AfroXLMR": "#55A868", "SADiLaR": "#4C72B0"})
 
-plt.figure(figsize=(8, 5))
+fig, ax = plt.subplots(figsize=(10, 6))
+ax.barh(importance_df["Feature"], importance_df["Importance"], color=colours)
+ax.set_xlabel("Feature Importance")
+ax.set_title("Phase 3 Feature Importance: AfroXLMR vs SADiLaR Linguistic Features\n"
+             "(Green = AfroXLMR transfer learning, Blue = SADiLaR linguistic)")
 
-plt.barh(
-    importance_df["Feature"],
-    importance_df["Importance"]
-)
-
-plt.xlabel("Importance")
-plt.title("SADiLaR Feature Importance")
-
+from matplotlib.patches import Patch
+legend_elements = [
+    Patch(facecolor="#55A868", label="AfroXLMR (Transfer Learning)"),
+    Patch(facecolor="#4C72B0", label="SADiLaR (Linguistic Features)"),
+]
+ax.legend(handles=legend_elements)
 plt.tight_layout()
-
-plt.savefig(
-    os.path.join(
-        RESULTS_DIR,
-        "sadilar_feature_importance.png"
-    ),
-    dpi=300
-)
-
+plt.savefig(os.path.join(RESULTS_DIR, "p3_feature_importance.png"), dpi=300)
 plt.close()
 
-# box plots
+# ── 3. Three-phase comparison bar chart ─────────────────────────────────────
+# This is the key chart for the proposal — shows progression across all phases
+print("Plotting 3-phase comparison...")
+metrics_labels = ["Precision", "Recall", "Macro F1"]
+metric_keys    = ["precision", "recall", "macro_f1"]
 
-print("Creating boxplots...")
+p1_vals = [phase1.get(k, float("nan")) for k in metric_keys]
+p2_vals = [phase2.get(k, float("nan")) for k in metric_keys]
+p3_vals = [phase3.get(k, float("nan")) for k in metric_keys]
 
-df["Label_Name"] = df["Label"].map({
-    0: "Human",
-    1: "Machine"
-})
+x     = np.arange(len(metrics_labels))
+width = 0.25
+
+fig, ax = plt.subplots(figsize=(10, 6))
+b1 = ax.bar(x - width,     p1_vals, width, label="Phase 1: TF-IDF + LR (Baseline)",
+            color="#4C72B0", edgecolor="white")
+b2 = ax.bar(x,             p2_vals, width, label="Phase 2: AfroXLMR (Transfer Learning)",
+            color="#55A868", edgecolor="white")
+b3 = ax.bar(x + width,     p3_vals, width, label="Phase 3: Augmented (AfroXLMR + SADiLaR)",
+            color="#C44E52", edgecolor="white")
+
+for bars in [b1, b2, b3]:
+    for bar in bars:
+        h = bar.get_height()
+        if not np.isnan(h):
+            ax.text(bar.get_x() + bar.get_width() / 2, h + 0.005,
+                    f"{h:.3f}", ha="center", va="bottom", fontsize=8)
+
+ax.set_xticks(x)
+ax.set_xticklabels(metrics_labels)
+ax.set_ylim(0, 1.12)
+ax.set_ylabel("Score")
+ax.set_title("Phase 1 vs Phase 2 vs Phase 3 — Siswati Zero-Shot (Cross-Lingual)",
+             fontweight="bold")
+ax.legend()
+plt.tight_layout()
+plt.savefig(os.path.join(RESULTS_DIR, "p3_phase_comparison.png"), dpi=300)
+plt.close()
+
+# ── 4. Box plots: linguistic features by label ───────────────────────────────
+print("Plotting feature distribution boxplots...")
+test_df_plot = test_df.copy()
+test_df_plot["Label_Name"] = test_df_plot["Label"].map({0: "Human", 1: "Machine"})
 
 PLOT_FEATURES = [
-    "sadilar_coverage",
-    "avg_word_length",
-    "unique_word_ratio",
-    "morph_diversity_ratio"
+    ("sadilar_coverage",       "SADiLaR Coverage"),
+    ("unique_word_ratio",      "Lexical Diversity (Unique Word Ratio)"),
+    ("word_repetition_rate",   "Word Repetition Rate"),
+    ("bigram_repetition_rate", "Bigram Repetition Rate"),
+    ("morph_diversity_ratio",  "Morphological Diversity Ratio"),
+    ("avg_word_length",        "Average Word Length"),
 ]
 
-for feature in PLOT_FEATURES:
-
-    plt.figure(figsize=(8, 5))
-
-    df.boxplot(
-        column=feature,
-        by=["Language_Code", "Label_Name"],
-        rot=45
-    )
-
-    plt.title(f"{feature} by Language and Label")
+for col, title in PLOT_FEATURES:
+    plt.figure(figsize=(7, 4))
+    test_df_plot.boxplot(column=col, by="Label_Name", rot=0)
+    plt.title(f"{title} by Label — Siswati Test Set")
     plt.suptitle("")
-
-    plt.xlabel("Language and Label")
-    plt.ylabel(feature)
-
+    plt.xlabel("Label")
+    plt.ylabel(col)
     plt.tight_layout()
-
-    plt.savefig(
-        os.path.join(
-            RESULTS_DIR,
-            f"{feature}_boxplot.png"
-        ),
-        dpi=300
-    )
-
+    plt.savefig(os.path.join(RESULTS_DIR, f"p3_{col}_boxplot.png"), dpi=300)
     plt.close()
 
-# SHAP analysis
+# ── 5. SHAP analysis on the augmented model ──────────────────────────────────
+# Applied to the combined model — reveals whether detection decisions rely on
+# AfroXLMR's representations (prob_human/prob_machine) or linguistic features
+print("Running SHAP analysis on augmented model...")
 
-print("Running SHAP analysis...")
+X_test_labelled = X_test.copy()
+X_test_labelled.columns = [FEATURE_LABELS.get(c, c) for c in X_test_labelled.columns]
 
-explainer = shap.TreeExplainer(model)
+explainer   = shap.TreeExplainer(model)
+shap_values = explainer.shap_values(X_test_labelled)
 
-shap_values = explainer.shap_values(X_test)
-
-# Binary classification
+# Extract SHAP values for the machine-generated class
 if isinstance(shap_values, list):
-    shap_values_machine = shap_values[1]
-
-# Some SHAP versions return 3D arrays
+    shap_machine = shap_values[1]
 elif len(shap_values.shape) == 3:
-    shap_values_machine = shap_values[:, :, 1]
-
+    shap_machine = shap_values[:, :, 1]
 else:
-    shap_values_machine = shap_values
+    shap_machine = shap_values
 
-# SHAP summary plot
+# SHAP summary dot plot — shows direction and magnitude of each feature
 plt.figure()
-
-shap.summary_plot(
-    shap_values_machine,
-    X_test,
-    show=False
-)
-
+shap.summary_plot(shap_machine, X_test_labelled, show=False)
+plt.title("SHAP Summary — Phase 3 Augmented Model (Machine-Generated Class)")
 plt.tight_layout()
-
-plt.savefig(
-    os.path.join(
-        RESULTS_DIR,
-        "sadilar_shap_summary.png"
-    ),
-    dpi=300
-)
-
+plt.savefig(os.path.join(RESULTS_DIR, "p3_shap_summary.png"), dpi=300)
 plt.close()
 
-# SHAP bar plot
-plt.figure()
-
-shap.summary_plot(
-    shap_values_machine,
-    X_test,
-    plot_type="bar",
-    show=False
-)
-
+# SHAP bar plot — mean absolute SHAP values, colour-coded by source
+plt.figure(figsize=(10, 6))
+shap.summary_plot(shap_machine, X_test_labelled, plot_type="bar", show=False)
+plt.title("SHAP Feature Importance — Phase 3 Augmented Model")
 plt.tight_layout()
-
-plt.savefig(
-    os.path.join(
-        RESULTS_DIR,
-        "sadilar_shap_bar.png"
-    ),
-    dpi=300
-)
-
+plt.savefig(os.path.join(RESULTS_DIR, "p3_shap_bar.png"), dpi=300)
 plt.close()
 
-print("\nAll SADiLaR plots saved to:")
+print("\nAll Phase 3 plots saved to:")
 print(RESULTS_DIR)
-
 print("\nDone.")

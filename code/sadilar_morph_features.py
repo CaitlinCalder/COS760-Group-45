@@ -57,6 +57,8 @@ def extract_features(text, lookup):
             "unique_word_ratio": 0,
             "unique_morph_analysis_count": 0,
             "morph_diversity_ratio": 0,
+            "word_repetition_rate": 0,
+            "bigram_repetition_rate": 0,
         }
 
     matched = 0
@@ -70,6 +72,21 @@ def extract_features(text, lookup):
     unique_words = len(set(tokens))
     unique_analyses = len(set(analyses))
 
+    # Repetition features: how often words and bigrams repeat
+    # Machine-generated text tends to repeat phrases more than human writing
+    word_counts = {}
+    for token in tokens:
+        word_counts[token] = word_counts.get(token, 0) + 1
+    repeated_words = sum(1 for count in word_counts.values() if count > 1)
+    word_repetition_rate = repeated_words / unique_words if unique_words > 0 else 0
+
+    bigrams = list(zip(tokens[:-1], tokens[1:]))
+    if bigrams:
+        unique_bigrams = len(set(bigrams))
+        bigram_repetition_rate = 1 - (unique_bigrams / len(bigrams))
+    else:
+        bigram_repetition_rate = 0
+
     return {
         "word_count": word_count,
         "matched_words": matched,
@@ -79,6 +96,8 @@ def extract_features(text, lookup):
         "unique_word_ratio": unique_words / word_count,
         "unique_morph_analysis_count": unique_analyses,
         "morph_diversity_ratio": unique_analyses / word_count,
+        "word_repetition_rate": word_repetition_rate,
+        "bigram_repetition_rate": bigram_repetition_rate,
     }
 
 
