@@ -28,9 +28,7 @@ FEATURES_FILE = os.path.join(
     BASE_PATH, "data", "processed", "sadilar_morph_features.csv"
 )
 
-AFROXLMR_MODEL_PATH = os.path.join(
-    "/content/drive/My Drive/afroxlmr_detector", "best_model"
-)
+AFROXLMR_MODEL_PATH = r"C:\Users\caitl\Downloads\best_model\best_model"
 
 PHASE1_METRICS_JSON = os.path.join(
     "/content/drive/MyDrive/afroxlmr_detector", "baseline_metrics.json"
@@ -60,7 +58,7 @@ SADILAR_FEATURE_COLUMNS = [
 
 ALL_FEATURE_COLUMNS = ["prob_human", "prob_machine"] + SADILAR_FEATURE_COLUMNS
 
-# Human-readable labels for SHAP plots
+#labels for SHAP plots
 FEATURE_LABELS = {
     "prob_human": "AfroXLMR: P(Human)",
     "prob_machine": "AfroXLMR: P(Machine)",
@@ -96,7 +94,6 @@ def extract_afroxlmr_probabilities(texts, model, tokenizer, device, batch_size=1
     return np.vstack(all_probs)
 
 
-# --- Load data and rebuild model (mirrors sadilar_classifier.py) ---
 print("Loading SADiLaR feature dataset...")
 df = pd.read_csv(FEATURES_FILE)
 df["Language_Code"] = df["Language_Code"].str.strip().str.lower()
@@ -136,7 +133,6 @@ model = RandomForestClassifier(n_estimators=200, random_state=42)
 model.fit(X_train, y_train)
 y_pred = model.predict(X_test)
 
-# --- Load phase metrics for comparison ---
 phase1, phase2 = {}, {}
 
 if os.path.exists(PHASE1_METRICS_JSON):
@@ -156,7 +152,7 @@ phase3 = {
     "recall":    round(float(report["macro avg"]["recall"]), 4),
 }
 
-# ── 1. Confusion matrix ──────────────────────────────────────────────────────
+#confusion matrix
 print("Plotting confusion matrix...")
 fig, ax = plt.subplots(figsize=(6, 5))
 ConfusionMatrixDisplay.from_predictions(
@@ -169,7 +165,7 @@ plt.tight_layout()
 plt.savefig(os.path.join(RESULTS_DIR, "p3_confusion_matrix.png"), dpi=300)
 plt.close()
 
-# ── 2. Feature importance (AfroXLMR vs SADiLaR) ─────────────────────────────
+#feature importance
 print("Plotting feature importance...")
 importance_df = pd.DataFrame({
     "Feature":    [FEATURE_LABELS.get(f, f) for f in ALL_FEATURE_COLUMNS],
@@ -196,8 +192,7 @@ plt.tight_layout()
 plt.savefig(os.path.join(RESULTS_DIR, "p3_feature_importance.png"), dpi=300)
 plt.close()
 
-# ── 3. Three-phase comparison bar chart ─────────────────────────────────────
-# This is the key chart for the proposal — shows progression across all phases
+#three-phase comparison bar chart 
 print("Plotting 3-phase comparison...")
 metrics_labels = ["Precision", "Recall", "Macro F1"]
 metric_keys    = ["precision", "recall", "macro_f1"]
@@ -235,7 +230,7 @@ plt.tight_layout()
 plt.savefig(os.path.join(RESULTS_DIR, "p3_phase_comparison.png"), dpi=300)
 plt.close()
 
-# ── 4. Box plots: linguistic features by label ───────────────────────────────
+#box plots of linguistic features by label
 print("Plotting feature distribution boxplots...")
 test_df_plot = test_df.copy()
 test_df_plot["Label_Name"] = test_df_plot["Label"].map({0: "Human", 1: "Machine"})
@@ -260,9 +255,7 @@ for col, title in PLOT_FEATURES:
     plt.savefig(os.path.join(RESULTS_DIR, f"p3_{col}_boxplot.png"), dpi=300)
     plt.close()
 
-# ── 5. SHAP analysis on the augmented model ──────────────────────────────────
-# Applied to the combined model — reveals whether detection decisions rely on
-# AfroXLMR's representations (prob_human/prob_machine) or linguistic features
+#SHAP analysis on the augmented model reveals whether detection decisions rely on AfroXLMR's representations (prob_human/prob_machine) or linguistic features
 print("Running SHAP analysis on augmented model...")
 
 X_test_labelled = X_test.copy()
@@ -271,7 +264,6 @@ X_test_labelled.columns = [FEATURE_LABELS.get(c, c) for c in X_test_labelled.col
 explainer   = shap.TreeExplainer(model)
 shap_values = explainer.shap_values(X_test_labelled)
 
-# Extract SHAP values for the machine-generated class
 if isinstance(shap_values, list):
     shap_machine = shap_values[1]
 elif len(shap_values.shape) == 3:
@@ -279,7 +271,6 @@ elif len(shap_values.shape) == 3:
 else:
     shap_machine = shap_values
 
-# SHAP summary dot plot — shows direction and magnitude of each feature
 plt.figure()
 shap.summary_plot(shap_machine, X_test_labelled, show=False)
 plt.title("SHAP Summary — Phase 3 Augmented Model (Machine-Generated Class)")
@@ -287,7 +278,6 @@ plt.tight_layout()
 plt.savefig(os.path.join(RESULTS_DIR, "p3_shap_summary.png"), dpi=300)
 plt.close()
 
-# SHAP bar plot — mean absolute SHAP values, colour-coded by source
 plt.figure(figsize=(10, 6))
 shap.summary_plot(shap_machine, X_test_labelled, plot_type="bar", show=False)
 plt.title("SHAP Feature Importance — Phase 3 Augmented Model")

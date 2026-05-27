@@ -3,7 +3,7 @@ SADiLaR Phase 3 — Feature-Augmented Classifier
 
 Builds on Phase 2 (fine-tuned AfroXLMR) by combining its predicted
 probabilities with SADiLaR morphological features. This is the actual
-feature augmentation described in the proposal — Phase 2's transfer
+feature augmentation described in the proposal, Phase 2's transfer
 learning output is used as input here, not replaced.
 
 The Random Forest is trained on:
@@ -11,7 +11,7 @@ The Random Forest is trained on:
   - SADiLaR morphological and stylistic features
 
 Training: isiZulu + isiXhosa
-Test (zero-shot): Siswati — consistent with Phases 1 and 2
+Test (zero-shot): Siswati (cross-language generalisation)
 
 Performance is evaluated using Macro F1, MCC, and compared against
 both Phase 1 (baseline) and Phase 2 (AfroXLMR alone).
@@ -39,9 +39,7 @@ INPUT_FILE = os.path.join(
 )
 
 # Phase 2 fine-tuned AfroXLMR model — loaded to extract probabilities
-AFROXLMR_MODEL_PATH = os.path.join(
-    "/content/drive/My Drive/afroxlmr_detector", "best_model"
-)
+AFROXLMR_MODEL_PATH = r"C:\Users\caitl\Downloads\best_model\best_model"
 
 PHASE1_METRICS_JSON = os.path.join(
     "/content/drive/MyDrive/afroxlmr_detector", "baseline_metrics.json"
@@ -58,7 +56,6 @@ RESULTS_FILE = os.path.join(RESULTS_DIR, "sadilar_results.json")
 
 MAX_LENGTH = 512
 
-# SADiLaR features — now includes repetition features added in Phase 3
 SADILAR_FEATURE_COLUMNS = [
     "word_count",
     "matched_words",
@@ -72,18 +69,10 @@ SADILAR_FEATURE_COLUMNS = [
     "bigram_repetition_rate",
 ]
 
-# Combined feature set: AfroXLMR probabilities + SADiLaR features
-# SHAP will show whether the model leans on AfroXLMR or linguistic features
 ALL_FEATURE_COLUMNS = ["prob_human", "prob_machine"] + SADILAR_FEATURE_COLUMNS
 
-
+#run the fine-tuned AfroXLMR model over all texts and return softmax probabilities [prob_human, prob_machine] for each sample to make Phase 3 an augmentation of Phase 2
 def extract_afroxlmr_probabilities(texts, model, tokenizer, device, batch_size=16):
-    """
-    Run the fine-tuned AfroXLMR model over all texts and return
-    softmax probabilities [prob_human, prob_machine] for each sample.
-    This is what makes Phase 3 an augmentation of Phase 2 rather than
-    a separate model.
-    """
     all_probs = []
     model.eval()
 
@@ -110,15 +99,12 @@ print("Loading SADiLaR feature dataset...")
 df = pd.read_csv(INPUT_FILE)
 df["Language_Code"] = df["Language_Code"].str.strip().str.lower()
 
-# --- Cross-lingual split: train on isiZulu + isiXhosa, test on Siswati ---
-# This mirrors the Phase 2 setup exactly — Siswati is never seen in training
 train_df = df[df["Language_Code"].isin(["zu", "xh"])].copy()
 test_df = df[df["Language_Code"] == "ss"].copy()
 
 print(f"Train (zu+xh): {len(train_df)} samples")
 print(f"Test  (ss)   : {len(test_df)} samples")
 
-# --- Load fine-tuned AfroXLMR from Phase 2 ---
 print("\nLoading fine-tuned AfroXLMR from Phase 2...")
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -127,7 +113,6 @@ afroxlmr = AutoModelForSequenceClassification.from_pretrained(
     AFROXLMR_MODEL_PATH
 ).to(device)
 
-# --- Extract AfroXLMR probabilities for train and test sets ---
 print("Extracting AfroXLMR probabilities for training set...")
 train_texts = train_df["Text_Generated"].tolist()
 train_probs = extract_afroxlmr_probabilities(train_texts, afroxlmr, tokenizer, device)
@@ -136,7 +121,6 @@ print("Extracting AfroXLMR probabilities for Siswati test set...")
 test_texts = test_df["Text_Generated"].tolist()
 test_probs = extract_afroxlmr_probabilities(test_texts, afroxlmr, tokenizer, device)
 
-# --- Combine AfroXLMR probabilities with SADiLaR features ---
 train_df = train_df.copy()
 test_df = test_df.copy()
 
@@ -151,8 +135,6 @@ y_train = train_df["Label"]
 X_test = test_df[ALL_FEATURE_COLUMNS]
 y_test = test_df["Label"]
 
-# --- Train augmented Random Forest ---
-# The RF learns when to trust AfroXLMR and when linguistic features matter
 print("\nTraining augmented Random Forest (Phase 2 probs + SADiLaR features)...")
 model = RandomForestClassifier(n_estimators=200, random_state=42)
 model.fit(X_train, y_train)
@@ -174,7 +156,6 @@ sorted_feature_importance = dict(
     sorted(feature_importance.items(), key=lambda item: item[1], reverse=True)
 )
 
-# --- Load Phase 1 and Phase 2 metrics for comparison ---
 phase1, phase2 = {}, {}
 
 if os.path.exists(PHASE1_METRICS_JSON):
@@ -196,7 +177,6 @@ phase3 = {
     "recall": round(float(report["macro avg"]["recall"]), 4),
 }
 
-# --- Three-phase comparison table ---
 print("\n" + "=" * 65)
 print("PHASE COMPARISON — Siswati Zero-Shot (Cross-Lingual)")
 print("=" * 65)
@@ -220,15 +200,8 @@ for feature, importance in sorted_feature_importance.items():
     label = "(AfroXLMR)" if feature.startswith("prob_") else "(SADiLaR)"
     print(f"  {feature:<35} {label} {importance:.6f}")
 
-# --- Save results ---
 results = {
     "experiment": "Phase 3 — SADiLaR feature-augmented AfroXLMR classifier",
-    "description": (
-        "Augments Phase 2 AfroXLMR with SADiLaR morphological features. "
-        "AfroXLMR probabilities and linguistic features are combined as input "
-        "to a Random Forest. SHAP reveals whether detection relies on "
-        "AfroXLMR representations or linguistic structure."
-    ),
     "model": "RandomForestClassifier + AfroXLMR probabilities + SADiLaR features",
     "train_languages": ["zu", "xh"],
     "test_language": "ss",

@@ -42,7 +42,7 @@ def load_morph_lookup(filepath):
 
     return lookup
 
-
+#added repitition feature 
 def extract_features(text, lookup):
     tokens = tokenize(text)
     word_count = len(tokens)
@@ -72,8 +72,6 @@ def extract_features(text, lookup):
     unique_words = len(set(tokens))
     unique_analyses = len(set(analyses))
 
-    # Repetition features: how often words and bigrams repeat
-    # Machine-generated text tends to repeat phrases more than human writing
     word_counts = {}
     for token in tokens:
         word_counts[token] = word_counts.get(token, 0) + 1
