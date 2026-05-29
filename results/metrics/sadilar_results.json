@@ -1,11 +1,14 @@
 {
-    "experiment": "SADiLaR morphology-based classifier",
-    "model": "RandomForestClassifier",
-    "label_mapping": {
-        "0": "Human-written",
-        "1": "Machine-generated"
-    },
+    "experiment": "Phase 3 \u2014 SADiLaR feature-augmented AfroXLMR classifier",
+    "model": "RandomForestClassifier + AfroXLMR probabilities + SADiLaR features",
+    "train_languages": [
+        "zu",
+        "xh"
+    ],
+    "test_language": "ss",
     "feature_columns": [
+        "prob_human",
+        "prob_machine",
         "word_count",
         "matched_words",
         "unmatched_words",
@@ -13,57 +16,92 @@
         "avg_word_length",
         "unique_word_ratio",
         "unique_morph_analysis_count",
-        "morph_diversity_ratio"
+        "morph_diversity_ratio",
+        "word_repetition_rate",
+        "bigram_repetition_rate"
     ],
-    "test_size": 0.2,
-    "random_state": 42,
-    "macro_f1": 0.8096345514950166,
-    "mcc": 0.6221654470205925,
+    "phase3_metrics": {
+        "macro_f1": 0.8998,
+        "mcc": 0.8177,
+        "precision": 0.9378,
+        "recall": 0.8818,
+        "auc_roc": 0.9685,
+        "auc_pr": 0.9716
+    },
+    "phase_comparison": {
+        "phase1_tfidf_lr": {
+            "label": "zero-shot cross-lingual test (Siswati)",
+            "precision": 0.9276,
+            "recall": 0.8591,
+            "macro_f1": 0.8789,
+            "mcc": 0.7837,
+            "auc_roc": 0.9964,
+            "auc_pr": 0.9941
+        },
+        "phase2_afroxlmr": {
+            "precision": 0.8719512195121951,
+            "recall": 0.7136363636363636,
+            "macro_f1": 0.7259364838982674,
+            "mcc": 0.5638
+        },
+        "phase3_augmented": {
+            "macro_f1": 0.8998,
+            "mcc": 0.8177,
+            "precision": 0.9378,
+            "recall": 0.8818,
+            "auc_roc": 0.9685,
+            "auc_pr": 0.9716
+        }
+    },
     "classification_report": {
         "0": {
-            "precision": 0.8613861386138614,
-            "recall": 0.7981651376146789,
-            "f1-score": 0.8285714285714286,
-            "support": 109.0
+            "precision": 0.8755980861244019,
+            "recall": 1.0,
+            "f1-score": 0.9336734693877551,
+            "support": 183.0
         },
         "1": {
-            "precision": 0.7555555555555555,
-            "recall": 0.8292682926829268,
-            "f1-score": 0.7906976744186046,
-            "support": 82.0
+            "precision": 1.0,
+            "recall": 0.7636363636363637,
+            "f1-score": 0.865979381443299,
+            "support": 110.0
         },
-        "accuracy": 0.8115183246073299,
+        "accuracy": 0.9112627986348123,
         "macro avg": {
-            "precision": 0.8084708470847084,
-            "recall": 0.8137167151488028,
-            "f1-score": 0.8096345514950166,
-            "support": 191.0
+            "precision": 0.937799043062201,
+            "recall": 0.8818181818181818,
+            "f1-score": 0.899826425415527,
+            "support": 293.0
         },
         "weighted avg": {
-            "precision": 0.8159510191856882,
-            "recall": 0.8115183246073299,
-            "f1-score": 0.812311492233567,
-            "support": 191.0
+            "precision": 0.9223018763166059,
+            "recall": 0.9112627986348123,
+            "f1-score": 0.9082593066782323,
+            "support": 293.0
         }
     },
     "confusion_matrix": [
         [
-            87,
-            22
+            183,
+            0
         ],
         [
-            14,
-            68
+            26,
+            84
         ]
     ],
     "feature_importance": {
-        "avg_word_length": 0.3407856648816739,
-        "morph_diversity_ratio": 0.16345317685041716,
-        "sadilar_coverage": 0.11366145400877631,
-        "unique_word_ratio": 0.09320696623345975,
-        "word_count": 0.09202639017530753,
-        "unmatched_words": 0.08447805229179739,
-        "matched_words": 0.058540778626785576,
-        "unique_morph_analysis_count": 0.05384751693178242
+        "prob_human": 0.3823341478632083,
+        "prob_machine": 0.3588211706078568,
+        "avg_word_length": 0.07531178177095273,
+        "morph_diversity_ratio": 0.07194810922116186,
+        "sadilar_coverage": 0.060731181320128204,
+        "unmatched_words": 0.021469358704453736,
+        "unique_morph_analysis_count": 0.007737625442092651,
+        "word_count": 0.0067989372472061025,
+        "matched_words": 0.005205557312442361,
+        "unique_word_ratio": 0.005024043842581504,
+        "word_repetition_rate": 0.002980844406359488,
+        "bigram_repetition_rate": 0.0016372422615563668
     }
 }
