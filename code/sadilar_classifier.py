@@ -26,16 +26,7 @@ import pandas as pd
 
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import (
-    classification_report,
-    confusion_matrix,
-    matthews_corrcoef,
-    f1_score,
-    roc_auc_score,
-    average_precision_score,
-    precision_score,
-    recall_score
-)
+from sklearn.metrics import (classification_report,confusion_matrix,matthews_corrcoef,f1_score,roc_auc_score,average_precision_score,precision_score,recall_score)
 
 BASE_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -44,7 +35,17 @@ INPUT_FILE = os.path.join(
 )
 
 # Phase 2 fine-tuned AfroXLMR model — loaded to extract probabilities
-AFROXLMR_MODEL_PATH = r"C:\Users\caitl\Downloads\best_model\best_model"
+AFROXLMR_MODEL_PATH = os.environ.get(
+    "AFROXLMR_MODEL_PATH",
+    os.path.join(BASE_PATH, "models", "best_model")
+)
+
+if not os.path.exists(AFROXLMR_MODEL_PATH):
+    raise FileNotFoundError(
+        f"AfroXLMR model not found at: {AFROXLMR_MODEL_PATH}\n"
+        "Either set the AFROXLMR_MODEL_PATH environment variable, "
+        "or place the model folder at project_root/models/best_model/"
+    )
 
 PHASE1_METRICS_JSON = os.path.join(
     "/content/drive/MyDrive/afroxlmr_detector", "baseline_metrics.json"
@@ -153,8 +154,8 @@ report_text = classification_report(y_test, y_pred)
 cm = confusion_matrix(y_test, y_pred)
 macro_f1 = f1_score(y_test, y_pred, average="macro")
 mcc = matthews_corrcoef(y_test, y_pred)
-auc_roc     = round(roc_auc_score(y_test, y_proba), 4)
-auc_pr      = round(average_precision_score(y_test, y_proba), 4)
+auc_roc= round(roc_auc_score(y_test, y_proba), 4)
+auc_pr= round(average_precision_score(y_test, y_proba), 4)
 
 feature_importance = {
     feature: float(importance)
@@ -183,8 +184,8 @@ phase3 = {
     "mcc": round(float(mcc), 4),
     "precision": round(float(report["macro avg"]["precision"]), 4),
     "recall": round(float(report["macro avg"]["recall"]), 4),
-    "auc_roc":   auc_roc,
-    "auc_pr":    auc_pr,
+    "auc_roc":auc_roc,
+    "auc_pr":auc_pr,
 }
 
 print("\n" + "=" * 65)
@@ -202,15 +203,13 @@ for m in ["precision", "recall", "macro_f1", "mcc"]:
 
 print("\nClassification Report (Phase 3 — Siswati):")
 print(report_text)
-print(f"Macro F1 : {macro_f1:.4f}")
-print(f"MCC      : {mcc:.4f}")
-print(f"AUC-ROC  : {auc_roc:.4f}")
-print(f"AUC-PR   : {auc_pr:.4f}")
+print(f"Macro F1: {macro_f1:.4f}")
+print(f"MCC: {mcc:.4f}")
+print(f"AUC-ROC: {auc_roc:.4f}")
+print(f"AUC-PR: {auc_pr:.4f}")
 
 #cross-LLM breakdown on Siswati to check if the augmented model generalises equally across ChatGPT, Claude, Gemini
-print("\n" + "=" * 65)
 print("CROSS-LLM GENERALISATION — Siswati Zero-Shot (Phase 3)")
-print("=" * 65)
 
 if "Model_Identifier" in test_df.columns:
     llm_results = {}
@@ -232,13 +231,13 @@ if "Model_Identifier" in test_df.columns:
         y_llm_proba = model.predict_proba(X_llm)[:, 1]
 
         llm_metrics = {
-            "n_machine":  int(machine_mask.sum()),
-            "precision":  round(precision_score(y_llm, y_llm_pred, average="macro", zero_division=0), 4),
-            "recall":     round(recall_score(y_llm, y_llm_pred, average="macro", zero_division=0), 4),
-            "macro_f1":   round(f1_score(y_llm, y_llm_pred, average="macro", zero_division=0), 4),
-            "mcc":        round(matthews_corrcoef(y_llm, y_llm_pred), 4),
-            "auc_roc":    round(roc_auc_score(y_llm, y_llm_proba), 4),
-            "auc_pr":     round(average_precision_score(y_llm, y_llm_proba), 4),
+            "n_machine":int(machine_mask.sum()),
+            "precision":round(precision_score(y_llm, y_llm_pred, average="macro", zero_division=0), 4),
+            "recall":round(recall_score(y_llm, y_llm_pred, average="macro", zero_division=0), 4),
+            "macro_f1":round(f1_score(y_llm, y_llm_pred, average="macro", zero_division=0), 4),
+            "mcc":round(matthews_corrcoef(y_llm, y_llm_pred), 4),
+            "auc_roc":round(roc_auc_score(y_llm, y_llm_proba), 4),
+            "auc_pr":round(average_precision_score(y_llm, y_llm_proba), 4),
         }
         llm_results[llm] = llm_metrics
 
@@ -247,7 +246,7 @@ if "Model_Identifier" in test_df.columns:
             if k != "n_machine":
                 print(f"    {k:<12}: {v}")
 else:
-    print("  Model_Identifier column not found in test set — skipping cross-LLM breakdown")
+    print("Model_Identifier column not found in test set — skipping cross-LLM breakdown")
     llm_results = {}
 
 print("\nFeature Importance (what the augmented model relies on):")

@@ -1,6 +1,4 @@
-#Phase 1 dataset preparation
-#Loads human text from HuggingFace and MGT from all three LLMs, merges into merged_dataset.csv. Run before baseline.py.
-
+#Phase 1 dataset preparation, loads human text from HuggingFace and MGT from all three LLMs, merges into merged_dataset.csv. Run before baseline.py.
 import os
 import re
 import pandas as pd
@@ -8,43 +6,43 @@ from datasets import load_dataset
 
 print("imports ok")
 
-BASE_PATH      = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-RAW_PATH       = os.path.join(BASE_PATH, "data", "raw")
-PROCESSED_PATH = os.path.join(BASE_PATH, "data", "processed")
+BASE_PATH= os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+RAW_PATH= os.path.join(BASE_PATH, "data", "raw")
+PROCESSED_PATH= os.path.join(BASE_PATH, "data", "processed")
 
 os.makedirs(PROCESSED_PATH, exist_ok=True)
 
-print(f"raw path      : {RAW_PATH}")
+print(f"raw path: {RAW_PATH}")
 print(f"processed path: {PROCESSED_PATH}")
 
 
 def load_vukuzenzele(lang_code: str, hf_code: str) -> pd.DataFrame:
-    ds       = load_dataset("dsfsi/vukuzenzele-monolingual", hf_code)
-    frames   = [pd.DataFrame(ds[split]) for split in ds]
-    combined = pd.concat(frames, ignore_index=True)
+    ds= load_dataset("dsfsi/vukuzenzele-monolingual", hf_code)
+    frames= [pd.DataFrame(ds[split]) for split in ds]
+    combined= pd.concat(frames, ignore_index=True)
 
     if "text" in combined.columns:
         combined.rename(columns={"text": "Text_Generated"}, inplace=True)
 
-    combined["Language_Code"]    = lang_code
-    combined["Model_Identifier"] = "human"
-    combined["Label"]            = 0
+    combined["Language_Code"]= lang_code
+    combined["Model_Identifier"]= "human"
+    combined["Label"]= 0
 
     return combined[["Text_Generated", "Language_Code", "Model_Identifier", "Label"]]
 
 
 print("\nloading Vukuzenzele human text...")
-zulu_human    = load_vukuzenzele("zu", "zul");  print(f"  isiZulu  : {len(zulu_human)}")
-xhosa_human   = load_vukuzenzele("xh", "xho");  print(f"  isiXhosa : {len(xhosa_human)}")
-siswati_human = load_vukuzenzele("ss", "ssw");  print(f"  Siswati  : {len(siswati_human)}")
+zulu_human= load_vukuzenzele("zu", "zul");  print(f"  isiZulu  : {len(zulu_human)}")
+xhosa_human= load_vukuzenzele("xh", "xho");  print(f"  isiXhosa : {len(xhosa_human)}")
+siswati_human= load_vukuzenzele("ss", "ssw");  print(f"  Siswati  : {len(siswati_human)}")
 
-human_df = pd.concat([zulu_human, xhosa_human, siswati_human], ignore_index=True)
+human_df= pd.concat([zulu_human, xhosa_human, siswati_human], ignore_index=True)
 print(f"\ntotal human: {len(human_df)}")
 
 MGT_FILES = {
-    "Claude"  : os.path.join(RAW_PATH, "machine_generated_claude.csv"),
-    "ChatGPT" : os.path.join(RAW_PATH, "machine_generated_chatgpt-4o.csv"),
-    "Gemini"  : os.path.join(RAW_PATH, "machine_generated_gemini-2.5-pro.csv"),
+    "Claude": os.path.join(RAW_PATH, "machine_generated_claude.csv"),
+    "ChatGPT": os.path.join(RAW_PATH, "machine_generated_chatgpt-4o.csv"),
+    "Gemini": os.path.join(RAW_PATH, "machine_generated_gemini-2.5-pro.csv"),
 }
 
 mgt_frames = []
@@ -59,35 +57,22 @@ machine_df = pd.concat(mgt_frames, ignore_index=True)
 machine_df["Label"] = 1
 machine_df = machine_df[["Text_Generated", "Language_Code", "Model_Identifier", "Label"]]
 
-#Remove the ChatGPT numeric tracking artefact that appears in every ChatGPT row and zero human rows.
+#remove the ChatGPT numeric tracking artefact that appears in every ChatGPT row and zero human rows.
 def clean_text(text: str) -> str:
-    text = re.sub(r'ngenombolo\s+\d+-\d+-\d+', '', text)
-    text = re.sub(r'\b\d+-\d+-\d+\b', '', text)
-    text = re.sub(r' {2,}', ' ', text)
+    text= re.sub(r'ngenombolo\s+\d+-\d+-\d+', '', text)
+    text= re.sub(r'\b\d+-\d+-\d+\b', '', text)
+    text= re.sub(r' {2,}', ' ', text)
     return text.strip()
 
-before = machine_df["Text_Generated"].str.contains(r'\d+-\d+-\d+', regex=True).sum()
+before= machine_df["Text_Generated"].str.contains(r'\d+-\d+-\d+', regex=True).sum()
 machine_df["Text_Generated"] = machine_df["Text_Generated"].apply(clean_text)
-after  = machine_df["Text_Generated"].str.contains(r'\d+-\d+-\d+', regex=True).sum()
-print(f"\nartefact rows cleaned: {before} -> {after}")
+after = machine_df["Text_Generated"].str.contains(r'\d+-\d+-\d+', regex=True).sum()
+print(f"\nArtefact rows cleaned: {before} -> {after}")
 
-#Remove first sentence from MGT texts that start with formulaic patterns
-#These patterns appear in 25-34% of MGT texts but <1% of human texts, creating
-#trivial detection shortcuts. Removing the first sentence makes the task more honest.
-FORMULAIC_STARTS = [
-    "Ngaphezulu",      # "More than" - appears in 25-34% of MGT, 0-0.6% human
-    "Abahlali",        # "Residents" - appears in 17-19% of MGT
-    "Emaphandleni",    # "In rural areas" - appears in 8-28% of MGT
-    "Umasipala",       # "Municipality" - common in MGT
-    "Ekhuluma",        # "Speaking" - common in MGT
-    "Ngemuva",         # "After" - common in MGT
-]
+#Remove first sentence from MGT texts that start with formulaic patterns as they appear in 25-34% of MGT texts but <1% of human texts, creating easy detection
+FORMULAIC_STARTS = ["Ngaphezulu","Abahlali","Emaphandleni","Umasipala","Ekhuluma","Ngemuva"]
 
 def remove_formulaic_first_sentence(text: str, is_mgt: bool) -> str:
-    """
-    If text is MGT and starts with a formulaic pattern, remove the first sentence.
-    This prevents the model from learning trivial shortcuts based on opening words.
-    """
     if not is_mgt:
         return text
     
@@ -135,24 +120,14 @@ combined_df.dropna(subset=["Text_Generated"], inplace=True)
 combined_df["Text_Generated"] = combined_df["Text_Generated"].astype(str).str.strip()
 combined_df = combined_df[combined_df["Text_Generated"] != ""]
 
-#Truncate all texts to a target character length, cutting at the nearest sentence boundary
-#to avoid mid-sentence cuts. The human Vukuzenzele articles average ~4000 chars while
-#MGT texts average ~1200-1600 chars, so we truncate to balance the length distribution.
+#truncate all texts to a target character length, cutting at the nearest sentence boundary
 def truncate_to_sentence(text: str, max_chars: int = 800) -> str:
-    """
-    Truncate text to approximately max_chars, cutting at the last sentence boundary
-    before that limit. Sentence boundaries are periods, exclamation marks, or question marks
-    followed by whitespace or end-of-string.
-    """
     if len(text) <= max_chars:
         return text
-    
-    #Find all sentence boundaries up to max_chars
-    #Pattern: period/exclamation/question followed by space or end-of-string
+
     truncated = text[:max_chars]
     
     #Find the last sentence boundary in the truncated portion
-    #Look for . ! ? followed by space or end
     import re
     boundaries = list(re.finditer(r'[.!?](?=\s|$)', truncated))
     
@@ -173,11 +148,11 @@ combined_df["Text_Generated"] = combined_df["Text_Generated"].apply(
     lambda t: truncate_to_sentence(t, TARGET_LENGTH)
 )
 
-after_human = combined_df.loc[combined_df["Label"]==0, "Text_Generated"].str.len().mean()
-after_mgt   = combined_df.loc[combined_df["Label"]==1, "Text_Generated"].str.len().mean()
+after_human= combined_df.loc[combined_df["Label"]==0, "Text_Generated"].str.len().mean()
+after_mgt= combined_df.loc[combined_df["Label"]==1, "Text_Generated"].str.len().mean()
 
-print(f"  human avg: {before_human:.0f} -> {after_human:.0f} chars")
-print(f"  MGT avg  : {before_mgt:.0f} -> {after_mgt:.0f} chars")
+print(f"human avg: {before_human:.0f} -> {after_human:.0f} chars")
+print(f"MGT avg  : {before_mgt:.0f} -> {after_mgt:.0f} chars")
 
 print(f"\ntotal after cleaning: {len(combined_df)}")
 print(combined_df["Language_Code"].value_counts())

@@ -29,7 +29,10 @@ FEATURES_FILE = os.path.join(
     BASE_PATH, "data", "processed", "sadilar_morph_features.csv"
 )
 
-AFROXLMR_MODEL_PATH = r"C:\Users\caitl\Downloads\best_model\best_model"
+AFROXLMR_MODEL_PATH = os.environ.get(
+    "AFROXLMR_MODEL_PATH",
+    os.path.join(BASE_PATH, "models", "best_model")
+)
 
 PHASE1_METRICS_JSON = os.path.join(
     "/content/drive/MyDrive/afroxlmr_detector", "baseline_metrics.json"
@@ -100,12 +103,12 @@ df = pd.read_csv(FEATURES_FILE)
 df["Language_Code"] = df["Language_Code"].str.strip().str.lower()
 
 train_df = df[df["Language_Code"].isin(["zu", "xh"])].copy()
-test_df  = df[df["Language_Code"] == "ss"].copy()
+test_df = df[df["Language_Code"] == "ss"].copy()
 
 print("Loading fine-tuned AfroXLMR from Phase 2...")
-device    = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-tokenizer = AutoTokenizer.from_pretrained(AFROXLMR_MODEL_PATH)
-afroxlmr  = AutoModelForSequenceClassification.from_pretrained(
+device= torch.device("cuda" if torch.cuda.is_available() else "cpu")
+tokenizer= AutoTokenizer.from_pretrained(AFROXLMR_MODEL_PATH)
+afroxlmr = AutoModelForSequenceClassification.from_pretrained(
     AFROXLMR_MODEL_PATH
 ).to(device)
 
@@ -119,15 +122,15 @@ test_probs = extract_afroxlmr_probabilities(
 
 train_df = train_df.copy()
 test_df  = test_df.copy()
-train_df["prob_human"]   = train_probs[:, 0]
+train_df["prob_human"] = train_probs[:, 0]
 train_df["prob_machine"] = train_probs[:, 1]
-test_df["prob_human"]    = test_probs[:, 0]
-test_df["prob_machine"]  = test_probs[:, 1]
+test_df["prob_human"] = test_probs[:, 0]
+test_df["prob_machine"] = test_probs[:, 1]
 
 X_train = train_df[ALL_FEATURE_COLUMNS]
 y_train = train_df["Label"]
-X_test  = test_df[ALL_FEATURE_COLUMNS]
-y_test  = test_df["Label"]
+X_test = test_df[ALL_FEATURE_COLUMNS]
+y_test = test_df["Label"]
 
 print("Training augmented Random Forest...")
 model = RandomForestClassifier(n_estimators=200, random_state=42)
@@ -148,9 +151,11 @@ from sklearn.metrics import classification_report
 report = classification_report(y_test, y_pred, output_dict=True)
 
 phase3 = {
-    "macro_f1":  round(float(f1_score(y_test, y_pred, average="macro")), 4),
-    "precision": round(float(report["macro avg"]["precision"]), 4),
-    "recall":    round(float(report["macro avg"]["recall"]), 4),
+    "macro_f1":round(float(f1_score(y_test, y_pred, average="macro")), 4),
+    "precision":round(float(report["macro avg"]["precision"]), 4),
+    "recall":round(float(report["macro avg"]["recall"]), 4),
+    "auc_roc":round(float(roc_auc_score(y_test, y_proba)), 4),
+    "auc_pr":round(float(average_precision_score(y_test, y_proba)), 4),
 }
 
 #confusion matrix
@@ -198,19 +203,19 @@ print("Plotting 3-phase comparison...")
 metrics_labels = ["Precision", "Recall", "Macro F1", "AUC-ROC", "AUC-PR"]
 metric_keys    = ["precision", "recall", "macro_f1", "auc_roc", "auc_pr"]
 
-p1_vals = [phase1.get(k, float("nan")) for k in metric_keys]
-p2_vals = [phase2.get(k, float("nan")) for k in metric_keys]
-p3_vals = [phase3.get(k, float("nan")) for k in metric_keys]
+p1_vals= [phase1.get(k, float("nan")) for k in metric_keys]
+p2_vals= [phase2.get(k, float("nan")) for k in metric_keys]
+p3_vals= [phase3.get(k, float("nan")) for k in metric_keys]
 
-x     = np.arange(len(metrics_labels))
-width = 0.25
+x= np.arange(len(metrics_labels))
+width= 0.25
 
 fig, ax = plt.subplots(figsize=(10, 6))
-b1 = ax.bar(x - width,     p1_vals, width, label="Phase 1: TF-IDF + LR (Baseline)",
+b1= ax.bar(x - width,     p1_vals, width, label="Phase 1: TF-IDF + LR (Baseline)",
             color="#4C72B0", edgecolor="white")
-b2 = ax.bar(x,             p2_vals, width, label="Phase 2: AfroXLMR (Transfer Learning)",
+b2= ax.bar(x,             p2_vals, width, label="Phase 2: AfroXLMR (Transfer Learning)",
             color="#55A868", edgecolor="white")
-b3 = ax.bar(x + width,     p3_vals, width, label="Phase 3: Augmented (AfroXLMR + SADiLaR)",
+b3= ax.bar(x + width,     p3_vals, width, label="Phase 3: Augmented (AfroXLMR + SADiLaR)",
             color="#C44E52", edgecolor="white")
 
 for bars in [b1, b2, b3]:
@@ -237,12 +242,12 @@ test_df_plot = test_df.copy()
 test_df_plot["Label_Name"] = test_df_plot["Label"].map({0: "Human", 1: "Machine"})
 
 PLOT_FEATURES = [
-    ("sadilar_coverage",       "SADiLaR Coverage"),
-    ("unique_word_ratio",      "Lexical Diversity (Unique Word Ratio)"),
-    ("word_repetition_rate",   "Word Repetition Rate"),
-    ("bigram_repetition_rate", "Bigram Repetition Rate"),
-    ("morph_diversity_ratio",  "Morphological Diversity Ratio"),
-    ("avg_word_length",        "Average Word Length"),
+    ("sadilar_coverage","SADiLaR Coverage"),
+    ("unique_word_ratio","Lexical Diversity (Unique Word Ratio)"),
+    ("word_repetition_rate","Word Repetition Rate"),
+    ("bigram_repetition_rate","Bigram Repetition Rate"),
+    ("morph_diversity_ratio","Morphological Diversity Ratio"),
+    ("avg_word_length","Average Word Length"),
 ]
 
 for col, title in PLOT_FEATURES:
@@ -259,29 +264,29 @@ for col, title in PLOT_FEATURES:
 #cross-LLM generalisation bar chart
 print("Plotting cross-LLM generalisation...")
 if "Model_Identifier" in test_df.columns:
-    llm_f1s    = {}
-    llm_aucs   = {}
+    llm_f1s= {}
+    llm_aucs= {}
     for llm in sorted(test_df["Model_Identifier"].unique()):
         if llm == "human":
             continue
-        human_mask   = test_df["Label"] == 0
+        human_mask = test_df["Label"] == 0
         machine_mask = (test_df["Label"] == 1) & (test_df["Model_Identifier"] == llm)
-        subset_idx   = test_df[human_mask | machine_mask].index
+        subset_idx = test_df[human_mask | machine_mask].index
         X_llm = test_df.loc[subset_idx, ALL_FEATURE_COLUMNS]
         y_llm = test_df.loc[subset_idx, "Label"]
         if len(y_llm.unique()) < 2:
             continue
-        y_llm_pred  = model.predict(X_llm)
+        y_llm_pred = model.predict(X_llm)
         y_llm_proba = model.predict_proba(X_llm)[:, 1]
-        llm_f1s[llm]  = round(f1_score(y_llm, y_llm_pred, average="macro"), 4)
+        llm_f1s[llm] = round(f1_score(y_llm, y_llm_pred, average="macro"), 4)
         llm_aucs[llm] = round(roc_auc_score(y_llm, y_llm_proba), 4)
  
     if llm_f1s:
         llm_names = list(llm_f1s.keys())
-        f1_vals   = [llm_f1s[l] for l in llm_names]
-        auc_vals  = [llm_aucs[l] for l in llm_names]
+        f1_vals = [llm_f1s[l] for l in llm_names]
+        auc_vals = [llm_aucs[l] for l in llm_names]
  
-        x     = np.arange(len(llm_names))
+        x = np.arange(len(llm_names))
         width = 0.35
  
         fig, ax = plt.subplots(figsize=(9, 5))

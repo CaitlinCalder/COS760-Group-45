@@ -1,6 +1,5 @@
 !pip install -q transformers accelerate datasets evaluate scikit-learn pandas numpy optuna
 
-
 import os
 import torch
 import torch.nn as nn
@@ -87,16 +86,14 @@ train_df, val_df = train_test_split(
 )
 
 
-
-
-print(f"✓ Loaded {len(df)} total samples from CSV\n")
+print(f"Loaded {len(df)} total samples from CSV\n")
 print(f"Language breakdown:")
 print(df["language"].value_counts().to_string())
 
 print(f"\nSplit summary:")
-print(f"  Train (Zulu+Xhosa) : {len(train_df):>5} samples")
-print(f"  Val   (Zulu+Xhosa) : {len(val_df):>5} samples")
-print(f"  Test  (Siswati)    : {len(siswati_df):>5} samples")
+print(f"Train (Zulu+Xhosa) : {len(train_df):>5} samples")
+print(f"Val   (Zulu+Xhosa) : {len(val_df):>5} samples")
+print(f"Test  (Siswati)    : {len(siswati_df):>5} samples")
 
 print(f"\nTrain label distribution:")
 print(train_df["label"].map({0:"human",1:"machine"}).value_counts().to_string())
@@ -107,7 +104,7 @@ print(siswati_df["label"].map({0:"human",1:"machine"}).value_counts().to_string(
 from transformers import AutoTokenizer
 
 tokenizer = AutoTokenizer.from_pretrained(AFROXLMR_MODEL)
-print(f"\n✓ Loaded tokenizer: {AFROXLMR_MODEL}")
+print(f"\nLoaded tokenizer: {AFROXLMR_MODEL}")
 
 from datasets import Dataset
 
@@ -134,20 +131,17 @@ print(f"Datasets have been tokenized")
 import evaluate
 from sklearn.metrics import classification_report, confusion_matrix
 
-f1_metric        = evaluate.load("f1")
-precision_metric = evaluate.load("precision")
-recall_metric    = evaluate.load("recall")
+f1_metric= evaluate.load("f1")
+precision_metric= evaluate.load("precision")
+recall_metric= evaluate.load("recall")
 
 def compute_metrics(eval_pred):
     logits, labels = eval_pred
     preds = np.argmax(logits, axis=-1)
     return {
-        "macro_f1":  f1_metric.compute(
-                         predictions=preds, references=labels, average="macro")["f1"],
-        "precision": precision_metric.compute(
-                         predictions=preds, references=labels, average="macro")["precision"],
-        "recall":    recall_metric.compute(
-                         predictions=preds, references=labels, average="macro")["recall"],
+        "macro_f1": f1_metric.compute(predictions=preds, references=labels, average="macro")["f1"],
+        "precision":precision_metric.compute(predictions=preds, references=labels, average="macro")["precision"],
+        "recall":recall_metric.compute(predictions=preds, references=labels, average="macro")["recall"],
     }
 
 
@@ -221,8 +215,8 @@ class RDropTrainer(Trainer):
 
     def compute_loss(self, model, inputs, return_outputs=False, **kwargs):
         labels = inputs.pop("labels")
-        out1   = model(**inputs)
-        out2   = model(**inputs)
+        out1= model(**inputs)
+        out2= model(**inputs)
 
         ce     = nn.CrossEntropyLoss(label_smoothing=self.label_smoothing)
         ce_loss = (ce(out1.logits, labels) + ce(out2.logits, labels)) / 2
@@ -245,15 +239,15 @@ def model_init():
     )
 
 def objective(trial):
-    lr           = trial.suggest_float("learning_rate",  1e-5, 4e-5, log=True)
-    batch_size   = trial.suggest_categorical("batch_size", [8, 16])
-    weight_decay = trial.suggest_float("weight_decay",   0.0,  0.2)
-    epochs       = trial.suggest_int("epochs",           3,    5)
-    warmup_ratio = trial.suggest_float("warmup_ratio",   0.05, 0.2)
-    decay_factor = trial.suggest_float("decay_factor",   0.75, 0.95)
-    rdrop_alpha  = trial.suggest_float("rdrop_alpha",    0.1,  1.0)
-    label_smooth = trial.suggest_float("label_smoothing",0.05, 0.15)
-    freeze_n     = trial.suggest_int("freeze_n",         0,    6)
+    lr= trial.suggest_float("learning_rate",  1e-5, 4e-5, log=True)
+    batch_size= trial.suggest_categorical("batch_size", [8, 16])
+    weight_decay= trial.suggest_float("weight_decay",   0.0,  0.2)
+    epochs= trial.suggest_int("epochs",           3,    5)
+    warmup_ratio= trial.suggest_float("warmup_ratio",   0.05, 0.2)
+    decay_factor= trial.suggest_float("decay_factor",   0.75, 0.95)
+    rdrop_alpha= trial.suggest_float("rdrop_alpha",    0.1,  1.0)
+    label_smooth= trial.suggest_float("label_smoothing",0.05, 0.15)
+    freeze_n= trial.suggest_int("freeze_n",         0,    6)
 
     args = TrainingArguments(
         output_dir=f"{BASE_DIR}/trial_{trial.number}",
@@ -277,14 +271,14 @@ def objective(trial):
         dataloader_num_workers=2,
     )
 
-    model     = model_init()
-    model     = freeze_bottom_layers(model, freeze_n=freeze_n)
-    optimizer = get_layerwise_optimizer(model, base_lr=lr,
+    model= model_init()
+    model= freeze_bottom_layers(model, freeze_n=freeze_n)
+    optimizer= get_layerwise_optimizer(model, base_lr=lr,
                                         decay_factor=decay_factor,
                                         weight_decay=weight_decay)
-    total_steps  = (len(train_ds) // batch_size) * epochs
-    warmup_steps = int(total_steps * warmup_ratio)
-    scheduler    = get_cosine_schedule_with_warmup(optimizer, warmup_steps, total_steps)
+    total_steps= (len(train_ds) // batch_size) * epochs
+    warmup_steps= int(total_steps * warmup_ratio)
+    scheduler= get_cosine_schedule_with_warmup(optimizer, warmup_steps, total_steps)
 
     trainer = RDropTrainer(
         model=model,
@@ -373,7 +367,7 @@ trainer = RDropTrainer(
 trainer.train()
 trainer.save_model(f"{BASE_DIR}/best_model")
 tokenizer.save_pretrained(f"{BASE_DIR}/best_model")
-print(f"✓ Best model saved to {BASE_DIR}/best_model")
+print(f"Best model saved to {BASE_DIR}/best_model")
 
 
 #Cross-lingual evaluation on Siswati
@@ -411,16 +405,16 @@ if os.path.exists(PHASE1_METRICS_JSON):
     with open(PHASE1_METRICS_JSON) as f:
         phase1_all = json.load(f)
     phase1 = phase1_all.get("siswati_zeroshot", {})
-    print(f"✓ Loaded Phase 1 metrics from {PHASE1_METRICS_JSON}\n")
+    print(f"Loaded Phase 1 metrics from {PHASE1_METRICS_JSON}\n")
 else:
     print(f"Phase 1 metrics not found at {PHASE1_METRICS_JSON}\n")
     phase1 = {}
 
 phase2 = {
     "precision": ft_results.get("eval_precision", float("nan")),
-    "recall":    ft_results.get("eval_recall",    float("nan")),
-    "macro_f1":  ft_results.get("eval_macro_f1",  float("nan")),
-    "mcc":       round(matthews_corrcoef(true_labels, ft_preds), 4),
+    "recall":ft_results.get("eval_recall",    float("nan")),
+    "macro_f1":ft_results.get("eval_macro_f1",  float("nan")),
+    "mcc":round(matthews_corrcoef(true_labels, ft_preds), 4),
 }
 
 metrics_to_compare = ["precision", "recall", "macro_f1", "mcc"]
@@ -429,17 +423,17 @@ print(header)
 print("  " + "-" * (len(header) - 2))
 
 for m in metrics_to_compare:
-    p1_val = phase1.get(m, float("nan"))
-    p2_val = phase2.get(m, float("nan"))
-    delta  = p2_val - p1_val if not (np.isnan(p1_val) or np.isnan(p2_val)) else float("nan")
-    sign   = "+" if delta >= 0 else ""
-    delta_str = f"{sign}{delta:.4f}" if not np.isnan(delta) else "N/A"
+    p1_val= phase1.get(m, float("nan"))
+    p2_val= phase2.get(m, float("nan"))
+    delta= p2_val - p1_val if not (np.isnan(p1_val) or np.isnan(p2_val)) else float("nan")
+    sign= "+" if delta >= 0 else ""
+    delta_str= f"{sign}{delta:.4f}" if not np.isnan(delta) else "N/A"
     print(f"  {m:<14} {p1_val:>14.4f} {p2_val:>14.4f} {delta_str:>12}")
 
 f1_delta = phase2["macro_f1"] - phase1.get("macro_f1", float("nan"))
 if not np.isnan(f1_delta):
     improved = f1_delta > 0
-    print(f"\n{'✓' if improved else '✗'} AfroXLMR {'outperforms' if improved else 'underperforms'} "
+    print(f"\n{'Improved' if improved else 'Outperformed'} AfroXLMR {'outperforms' if improved else 'underperforms'} "
           f"TF-IDF baseline on Siswati by {f1_delta:+.4f} Macro-F1")
 
 phase2_metrics = {
@@ -451,7 +445,7 @@ phase2_metrics = {
 out_path = f"{BASE_DIR}/phase2_metrics.json"
 with open(out_path, "w") as f:
     json.dump(phase2_metrics, f, indent=2)
-print(f"\n✓ Phase 2 metrics saved to {out_path}")
+print(f"\nPhase 2 metrics saved to {out_path}")
 
 #  Sample predictions on Siswati
 def predict(text: str, verbose=True):
@@ -476,8 +470,7 @@ print("=" * 55 + "\n")
 for row in siswati_df.head(8).itertuples():
     pred, _ = predict(row.text, verbose=False)
     match   = LABEL2ID[pred] == row.label
-    print(f"{'✓' if match else '✗'} True: {ID2LABEL[row.label]:<8} | "
-          f"Predicted: {pred:<8} | {row.text[:60]}")
+
 
 #Visualisations
 import matplotlib.pyplot as plt
@@ -734,7 +727,7 @@ plt.show()
 
 
 
-print(f"\n✓ All figures saved to {FIG_DIR}")
+print(f"\nAll figures saved to {FIG_DIR}")
 
 # Cross LLM Section
 
@@ -746,10 +739,10 @@ full_probs = scipy_softmax(full_preds_output.predictions, axis=-1)
 
 #attach predictions back to the dataframe
 results_df = df.copy().reset_index(drop=True)
-results_df["pred_label"]    = full_preds
-results_df["prob_human"]    = full_probs[:, 0]
-results_df["prob_machine"]  = full_probs[:, 1]
-results_df["correct"]       = results_df["pred_label"] == results_df["label"]
+results_df["pred_label"]= full_preds
+results_df["prob_human"]= full_probs[:, 0]
+results_df["prob_machine"]= full_probs[:, 1]
+results_df["correct"]= results_df["pred_label"] == results_df["label"]
 
 print(results_df[["language", "model", "label", "pred_label", "prob_machine"]].head(10))
 
@@ -764,24 +757,24 @@ def compute_group_metrics(group_df):
         return None
 
     return {
-        "n_samples":  len(group_df),
-        "precision":  round(precision_score(y_true, y_pred, average="macro", zero_division=0), 4),
-        "recall":     round(recall_score(y_true, y_pred, average="macro", zero_division=0), 4),
-        "macro_f1":   round(f1_score(y_true, y_pred, average="macro", zero_division=0), 4),
-        "mcc":        round(matthews_corrcoef(y_true, y_pred), 4),
-        "accuracy":   round((y_true == y_pred).mean(), 4),
+        "n_samples":len(group_df),
+        "precision":round(precision_score(y_true, y_pred, average="macro", zero_division=0), 4),
+        "recall":round(recall_score(y_true, y_pred, average="macro", zero_division=0), 4),
+        "macro_f1":round(f1_score(y_true, y_pred, average="macro", zero_division=0), 4),
+        "mcc":round(matthews_corrcoef(y_true, y_pred), 4),
+        "accuracy":round((y_true == y_pred).mean(), 4),
     }
 
 #group by language AND generating model
 rows = []
 for (lang, model_name), group in results_df[results_df["label"] == 1].groupby(["language", "model"]):
     #only machine-generated rows per model: merge with human rows for that language
-    human_rows    = results_df[(results_df["language"] == lang) & (results_df["label"] == 0)]
-    combined      = pd.concat([group, human_rows])
-    metrics       = compute_group_metrics(combined)
+    human_rows= results_df[(results_df["language"] == lang) & (results_df["label"] == 0)]
+    combined= pd.concat([group, human_rows])
+    metrics= compute_group_metrics(combined)
     if metrics:
         metrics["language"] = lang
-        metrics["model"]    = model_name
+        metrics["model"]= model_name
         rows.append(metrics)
 
 metrics_df = pd.DataFrame(rows)[["language", "model", "n_samples",
@@ -791,9 +784,9 @@ print(metrics_df.to_string(index=False))
 
 rows_by_model = []
 for model_name, group in results_df[results_df["label"] == 1].groupby("model"):
-    human_rows = results_df[results_df["label"] == 0]
-    combined   = pd.concat([group, human_rows])
-    metrics    = compute_group_metrics(combined)
+    human_rows= results_df[results_df["label"] == 0]
+    combined= pd.concat([group, human_rows])
+    metrics= compute_group_metrics(combined)
     if metrics:
         metrics["model"] = model_name
         rows_by_model.append(metrics)
@@ -873,19 +866,19 @@ save(fig, "15_radar_chart")
 plt.show()
 
 #Grouped Bar
-languages_list = sorted(metrics_df["language"].unique())
-models_list    = sorted(metrics_df["model"].unique())
-x              = np.arange(len(models_list))
-bar_width      = 0.8 / len(languages_list)
-palette_lang   = ["#4C72B0", "#55A868", "#C44E52", "#DD8452"]
+languages_list= sorted(metrics_df["language"].unique())
+models_list= sorted(metrics_df["model"].unique())
+x= np.arange(len(models_list))
+bar_width= 0.8 / len(languages_list)
+palette_lang= ["#4C72B0", "#55A868", "#C44E52", "#DD8452"]
 
 fig, ax = plt.subplots(figsize=(max(10, len(models_list) * 2), 5))
 
 for i, lang in enumerate(languages_list):
-    subset = metrics_df[metrics_df["language"] == lang].set_index("model")
-    vals   = [subset.loc[m, "macro_f1"] if m in subset.index else 0 for m in models_list]
-    offset = (i - len(languages_list) / 2 + 0.5) * bar_width
-    bars   = ax.bar(x + offset, vals, bar_width * 0.9,
+    subset= metrics_df[metrics_df["language"] == lang].set_index("model")
+    vals= [subset.loc[m, "macro_f1"] if m in subset.index else 0 for m in models_list]
+    offset= (i - len(languages_list) / 2 + 0.5) * bar_width
+    bars= ax.bar(x + offset, vals, bar_width * 0.9,
                     label=lang.upper(), color=palette_lang[i % 4], edgecolor="white")
     for bar in bars:
         h = bar.get_height()
@@ -988,4 +981,4 @@ model_metrics_df.to_csv(f"{BASE_DIR}/metrics_by_model.csv", index=False)
 with open(f"{BASE_DIR}/metrics_by_model_language.json", "w") as f:
     json.dump(metrics_df.to_dict(orient="records"), f, indent=2)
 
-print("✓ All per-model metrics saved.")
+print("All per-model metrics saved.")
