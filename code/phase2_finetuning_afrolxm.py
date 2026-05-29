@@ -170,7 +170,7 @@ def get_layerwise_optimizer(model, base_lr=2e-5, decay_factor=0.9, weight_decay=
 
     param_groups = []
 
-    #classifier head — full learning rate
+    #classifier head - full learning rate
     for n, p in model.named_parameters():
         if "classifier" in n or "pooler" in n:
             wd = 0.0 if any(nd in n for nd in no_decay) else weight_decay
@@ -501,7 +501,7 @@ for entry in log_history:
 
 if train_loss:
     fig, axes = plt.subplots(1, 2, figsize=(13, 4))
-    fig.suptitle("Training Curves — AfroXLMR Fine-tuning", fontweight="bold")
+    fig.suptitle("Training Curves-AfroXLMR Fine-tuning", fontweight="bold")
 
     tl_x, tl_y = zip(*train_loss)
     el_x, el_y = zip(*eval_loss)
@@ -520,7 +520,7 @@ if train_loss:
     save(fig, "01_training_curves")
     plt.show()
 else:
-    print("  (no training log found — skipping training curves)")
+    print("  (no training log found, skipping training curves)")
 
 
 #confusion matrix heatmap
@@ -531,7 +531,7 @@ sns.heatmap(
     yticklabels=["True: Human", "True: Machine"],
     linewidths=0.5, ax=ax,
 )
-ax.set_title("Confusion Matrix — Siswati Zero-Shot", fontweight="bold")
+ax.set_title("Confusion Matrix-Siswati Zero-Shot", fontweight="bold")
 ax.set_ylabel("True label"); ax.set_xlabel("Predicted label")
 plt.tight_layout()
 save(fig, "02_confusion_matrix")
@@ -562,7 +562,7 @@ for bar in bars1 + bars2:
 
 ax.set_xticks(x); ax.set_xticklabels(metrics_labels)
 ax.set_ylim(0, 1.08)
-ax.set_ylabel("Score"); ax.set_title("Phase 1 vs Phase 2 — Siswati Test Set", fontweight="bold")
+ax.set_ylabel("Score"); ax.set_title("Phase 1 vs Phase 2-Siswati Test Set", fontweight="bold")
 ax.legend()
 plt.tight_layout()
 save(fig, "03_phase_comparison")
@@ -582,7 +582,7 @@ for bar in bars:
             f"{bar.get_height():.3f}", ha="center", fontsize=10)
 ax.set_ylim(0, 1.1)
 ax.set_ylabel("F1 Score")
-ax.set_title("Per-Class F1 — Siswati Zero-Shot", fontweight="bold")
+ax.set_title("Per-Class F1-Siswati Zero-Shot", fontweight="bold")
 plt.tight_layout()
 save(fig, "04_perclass_f1")
 plt.show()
@@ -599,7 +599,7 @@ for lbl, colour in [(0, "#4C72B0"), (1, "#C44E52")]:
             color=colour, label=f"True: {'Human' if lbl==0 else 'Machine'}", density=True)
 ax.axvline(0.5, color="black", linestyle="--", linewidth=1, label="Decision boundary")
 ax.set_xlabel("P(Machine)"); ax.set_ylabel("Density")
-ax.set_title("Confidence Distribution — Siswati Predictions", fontweight="bold")
+ax.set_title("Confidence Distribution-Siswati Predictions", fontweight="bold")
 ax.legend()
 plt.tight_layout()
 save(fig, "05_confidence_distribution")
@@ -614,7 +614,7 @@ ax.plot(prob_pred, prob_true, marker="o", label="AfroXLMR", color="#55A868")
 ax.plot([0, 1], [0, 1], linestyle="--", color="grey", label="Perfect calibration")
 ax.set_xlabel("Mean predicted probability")
 ax.set_ylabel("Fraction of positives")
-ax.set_title("Calibration Curve — Siswati", fontweight="bold")
+ax.set_title("Calibration Curve-Siswati", fontweight="bold")
 ax.legend()
 plt.tight_layout()
 save(fig, "06_calibration_curve")
@@ -674,7 +674,7 @@ ax.plot(fpr, tpr, color="#55A868", lw=2, label=f"AfroXLMR (AUC = {roc_auc:.4f})"
 ax.plot([0, 1], [0, 1], linestyle="--", color="grey", label="Random classifier")
 ax.set_xlabel("False Positive Rate")
 ax.set_ylabel("True Positive Rate")
-ax.set_title("ROC Curve — Siswati Zero-Shot", fontweight="bold")
+ax.set_title("ROC Curve-Siswati Zero-Shot", fontweight="bold")
 ax.legend(loc="lower right")
 plt.tight_layout()
 save(fig, "09_roc_curve")
@@ -693,7 +693,7 @@ ax.axhline(y=true_labels.mean(), color="grey", linestyle="--",
            label=f"Baseline (prevalence = {true_labels.mean():.2f})")
 ax.set_xlabel("Recall")
 ax.set_ylabel("Precision")
-ax.set_title("Precision-Recall Curve — Siswati Zero-Shot", fontweight="bold")
+ax.set_title("Precision-Recall Curve-Siswati Zero-Shot", fontweight="bold")
 ax.legend()
 ax.set_xlim(0, 1); ax.set_ylim(0, 1.05)
 plt.tight_layout()
@@ -715,9 +715,9 @@ for outcome in [0, 1]:
                alpha=0.4, s=12, color=colors[outcome], label=labels_map[outcome])
 
 ax.axvline(0.5, color="black", linestyle="--", linewidth=1, label="Decision boundary")
-ax.set_xlabel("P(Machine) — model confidence")
+ax.set_xlabel("P(Machine)-model confidence")
 ax.set_yticks([]); ax.set_ylabel("")
-ax.set_title("Error Analysis: Confidence vs Correctness — Siswati", fontweight="bold")
+ax.set_title("Error Analysis: Confidence vs Correctness-Siswati", fontweight="bold")
 ax.legend(loc="upper left")
 plt.tight_layout()
 save(fig, "11_error_analysis")
@@ -830,7 +830,7 @@ sns.heatmap(
     pivot, annot=True, fmt=".3f", cmap="YlGnBu",
     linewidths=0.5, vmin=0, vmax=1, ax=ax
 )
-ax.set_title("Macro F1 — Generating Model × Language", fontweight="bold")
+ax.set_title("Macro F1 -Generating Model × Language", fontweight="bold")
 ax.set_xlabel("Language")
 ax.set_ylabel("Generating Model")
 plt.tight_layout()
@@ -934,7 +934,7 @@ sns.heatmap(
     linewidths=0.5, vmin=0, vmax=1, ax=ax,
     annot_kws={"size": 10}
 )
-ax.set_title("Error Rate (1 − Accuracy) — Model × Language", fontweight="bold")
+ax.set_title("Error Rate (1 − Accuracy) - Model × Language", fontweight="bold")
 ax.set_xlabel("Language"); ax.set_ylabel("Generating Model")
 plt.tight_layout()
 save(fig, "18_error_rate_heatmap")

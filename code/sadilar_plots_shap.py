@@ -1,6 +1,6 @@
 #NEW
 """
-SADiLaR Phase 3 — Visualisation and SHAP Analysis
+Visualisation and SHAP Analysis for phase 3
 
 Creates plots and SHAP explanations for the Phase 3 augmented classifier.
 SHAP is applied to the combined model (AfroXLMR probabilities + SADiLaR
@@ -166,7 +166,7 @@ ConfusionMatrixDisplay.from_predictions(
     display_labels=["Human", "Machine"],
     ax=ax,
 )
-ax.set_title("Phase 3 Augmented Classifier — Confusion Matrix\n(Siswati Zero-Shot)")
+ax.set_title("Phase 3 Augmented Classifier - Confusion Matrix\n(Siswati Zero-Shot)")
 plt.tight_layout()
 plt.savefig(os.path.join(RESULTS_DIR, "p3_confusion_matrix.png"), dpi=300)
 plt.close()
@@ -229,7 +229,7 @@ ax.set_xticks(x)
 ax.set_xticklabels(metrics_labels)
 ax.set_ylim(0, 1.12)
 ax.set_ylabel("Score")
-ax.set_title("Phase 1 vs Phase 2 vs Phase 3 — Siswati Zero-Shot (Cross-Lingual)",
+ax.set_title("Phase 1 vs Phase 2 vs Phase 3 - Siswati Zero-Shot (Cross-Lingual)",
              fontweight="bold")
 ax.legend()
 plt.tight_layout()
@@ -253,7 +253,7 @@ PLOT_FEATURES = [
 for col, title in PLOT_FEATURES:
     plt.figure(figsize=(7, 4))
     test_df_plot.boxplot(column=col, by="Label_Name", rot=0)
-    plt.title(f"{title} by Label — Siswati Test Set")
+    plt.title(f"{title} by Label - Siswati Test Set")
     plt.suptitle("")
     plt.xlabel("Label")
     plt.ylabel(col)
@@ -329,14 +329,14 @@ else:
 
 plt.figure()
 shap.summary_plot(shap_machine, X_test_labelled, show=False)
-plt.title("SHAP Summary — Phase 3 Augmented Model (Machine-Generated Class)")
+plt.title("SHAP Summary - Phase 3 Augmented Model (Machine-Generated Class)")
 plt.tight_layout()
 plt.savefig(os.path.join(RESULTS_DIR, "p3_shap_summary.png"), dpi=300)
 plt.close()
 
 plt.figure(figsize=(10, 6))
 shap.summary_plot(shap_machine, X_test_labelled, plot_type="bar", show=False)
-plt.title("SHAP Feature Importance — Phase 3 Augmented Model")
+plt.title("SHAP Feature Importance - Phase 3 Augmented Model")
 plt.tight_layout()
 plt.savefig(os.path.join(RESULTS_DIR, "p3_shap_bar.png"), dpi=300)
 plt.close()

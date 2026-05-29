@@ -1,7 +1,5 @@
 #NEW
 """
-SADiLaR Phase 3 — Feature-Augmented Classifier
-
 Builds on Phase 2 (fine-tuned AfroXLMR) by combining its predicted
 probabilities with SADiLaR morphological features. This is the actual
 feature augmentation described in the proposal, Phase 2's transfer
@@ -34,7 +32,7 @@ INPUT_FILE = os.path.join(
     BASE_PATH, "data", "processed", "sadilar_morph_features.csv"
 )
 
-# Phase 2 fine-tuned AfroXLMR model — loaded to extract probabilities
+# Phase 2 fine-tuned AfroXLMR modek
 AFROXLMR_MODEL_PATH = os.environ.get(
     "AFROXLMR_MODEL_PATH",
     os.path.join(BASE_PATH, "models", "best_model")
@@ -189,7 +187,7 @@ phase3 = {
 }
 
 print("\n" + "=" * 65)
-print("PHASE COMPARISON — Siswati Zero-Shot (Cross-Lingual)")
+print("PHASE COMPARISON - Siswati Zero-Shot (Cross-Lingual)")
 print("=" * 65)
 header = f"  {'Metric':<14} {'TF-IDF+LR (P1)':>16} {'AfroXLMR (P2)':>16} {'Augmented (P3)':>16}"
 print(header)
@@ -201,7 +199,7 @@ for m in ["precision", "recall", "macro_f1", "mcc"]:
     p3_val = phase3.get(m, float("nan"))
     print(f"  {m:<14} {p1_val:>16.4f} {p2_val:>16.4f} {p3_val:>16.4f}")
 
-print("\nClassification Report (Phase 3 — Siswati):")
+print("\nClassification Report (Phase 3 - Siswati):")
 print(report_text)
 print(f"Macro F1: {macro_f1:.4f}")
 print(f"MCC: {mcc:.4f}")
@@ -209,7 +207,7 @@ print(f"AUC-ROC: {auc_roc:.4f}")
 print(f"AUC-PR: {auc_pr:.4f}")
 
 #cross-LLM breakdown on Siswati to check if the augmented model generalises equally across ChatGPT, Claude, Gemini
-print("CROSS-LLM GENERALISATION — Siswati Zero-Shot (Phase 3)")
+print("CROSS-LLM GENERALISATION - Siswati Zero-Shot (Phase 3)")
 
 if "Model_Identifier" in test_df.columns:
     llm_results = {}
@@ -246,7 +244,7 @@ if "Model_Identifier" in test_df.columns:
             if k != "n_machine":
                 print(f"    {k:<12}: {v}")
 else:
-    print("Model_Identifier column not found in test set — skipping cross-LLM breakdown")
+    print("Model_Identifier column not found in test set - skipping cross-LLM breakdown")
     llm_results = {}
 
 print("\nFeature Importance (what the augmented model relies on):")
@@ -255,7 +253,7 @@ for feature, importance in sorted_feature_importance.items():
     print(f"  {feature:<35} {label} {importance:.6f}")
 
 results = {
-    "experiment": "Phase 3 — SADiLaR feature-augmented AfroXLMR classifier",
+    "experiment": "Phase 3 - SADiLaR feature-augmented AfroXLMR classifier",
     "model": "RandomForestClassifier + AfroXLMR probabilities + SADiLaR features",
     "train_languages": ["zu", "xh"],
     "test_language": "ss",

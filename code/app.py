@@ -1,9 +1,3 @@
-"""
-streamlit_demo.py
-MGT Detection Demo — Group 45, COS760
-Run with: streamlit run code/streamlit_demo.py
-"""
-
 import os
 import re
 import string
@@ -21,7 +15,7 @@ import shap
 
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.linear_model import SGDClassifier
+from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 
@@ -37,7 +31,10 @@ MORPH_FILES = {
 }
 
 #update this to wherever your best_model folder is saved locally
-AFROXLMR_MODEL_PATH = r"C:\Users\caitl\Downloads\best_model\best_model"
+AFROXLMR_MODEL_PATH = os.environ.get(
+    "AFROXLMR_MODEL_PATH",
+    os.path.join(BASE_PATH, "models", "best_model")
+)
 MAX_LENGTH = 512
 
 SADILAR_FEATURE_COLUMNS = [
@@ -63,7 +60,7 @@ FEATURE_LABELS = {
 }
 
 st.set_page_config(
-    page_title="MGT Detection — Bantu Languages",
+    page_title="MGT Detection-Bantu Languages",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
@@ -209,8 +206,8 @@ def load_baseline():
         max_features=10000, ngram_range=(3, 6),
         sublinear_tf=True, analyzer="char_wb", min_df=5,
     )
-    clf = SGDClassifier(
-        loss="log_loss", class_weight="balanced", random_state=42, max_iter=1000,
+    clf = LogisticRegression(
+        class_weight="balanced", random_state=42, max_iter=1000, solver="lbfgs",
     )
     tfidf.fit(X_tr)
     clf.fit(tfidf.transform(X_tr), y_tr)
@@ -229,6 +226,11 @@ def load_afroxlmr():
 @st.cache_resource
 def load_phase3_rf():
     """Train the augmented RF on the precomputed features file."""
+    if not os.path.exists(FEATURES_FILE):
+        raise FileNotFoundError(
+            f"SADiLaR features file not found at:\n  {FEATURES_FILE}\n"
+            "Please run code/sadilar_morph_features.py first to generate it."
+        )
     df = pd.read_csv(FEATURES_FILE)
     df["Language_Code"] = df["Language_Code"].str.strip().str.lower()
     train_df = df[df["Language_Code"].isin(["zu", "xh"])].copy()
@@ -267,7 +269,7 @@ def get_xlmr_probs(text, tokenizer, model, device):
 
 st.title("Detecting Machine-Generated Text in African Languages")
 st.markdown(
-    "**COS760 — Group 45** &nbsp;|&nbsp; "
+    "**COS760-Group 45** &nbsp;|&nbsp; "
     "Transfer Learning and Linguistic Feature Analysis in Bantu Languages"
 )
 st.markdown("<hr>", unsafe_allow_html=True)
@@ -294,7 +296,7 @@ run = st.button("Run Analysis", type="primary")
 
 if run and input_text.strip():
 
-    with st.spinner("Loading models — this may take a moment on first run..."):
+    with st.spinner("Loading models-this may take a moment on first run..."):
         tfidf, baseline_clf          = load_baseline()
         tokenizer, afroxlmr, device  = load_afroxlmr()
         rf_model                     = load_phase3_rf()
@@ -302,7 +304,7 @@ if run and input_text.strip():
 
     #Phase 1
     st.markdown("<hr>", unsafe_allow_html=True)
-    st.markdown('<div class="phase-header">Phase 1 — Baseline: TF-IDF + Logistic Regression</div>', unsafe_allow_html=True)
+    st.markdown('<div class="phase-header">Phase 1-Baseline: TF-IDF + Logistic Regression</div>', unsafe_allow_html=True)
 
     X_vec    = tfidf.transform([clean_for_tfidf(input_text)])
     p1_pred  = baseline_clf.predict(X_vec)[0]
@@ -321,14 +323,14 @@ if run and input_text.strip():
                     f'<div class="metric-val">{p1_proba[1]:.3f}</div></div>', unsafe_allow_html=True)
 
     st.markdown(
-        '<div class="note-text">Character n-gram TF-IDF matching — lexical surface patterns only. '
+        '<div class="note-text">Character n-gram TF-IDF matching-lexical surface patterns only. '
         'No language understanding. No transfer learning.</div>',
         unsafe_allow_html=True,
     )
 
     #Phase 2
     st.markdown("<hr>", unsafe_allow_html=True)
-    st.markdown('<div class="phase-header">Phase 2 — Transfer Learning: Fine-tuned AfroXLMR</div>', unsafe_allow_html=True)
+    st.markdown('<div class="phase-header">Phase 2-Transfer Learning: Fine-tuned AfroXLMR</div>', unsafe_allow_html=True)
 
     with st.spinner("Running AfroXLMR inference..."):
         p2_proba = get_xlmr_probs(input_text, tokenizer, afroxlmr, device)
@@ -356,7 +358,7 @@ if run and input_text.strip():
     #Phase 3
     st.markdown("<hr>", unsafe_allow_html=True)
     st.markdown(
-        '<div class="phase-header">Phase 3 — Feature Augmentation: AfroXLMR + SADiLaR Linguistic Features</div>',
+        '<div class="phase-header">Phase 3-Feature Augmentation: AfroXLMR + SADiLaR Linguistic Features</div>',
         unsafe_allow_html=True,
     )
 
@@ -399,7 +401,7 @@ if run and input_text.strip():
         st.dataframe(feat_df, use_container_width=True, hide_index=True, height=380)
 
     with right_col:
-        st.markdown("**SHAP Feature Contributions — Why this prediction?**")
+        st.markdown("**SHAP Feature Contributions-Why this prediction?**")
 
         explainer = shap.TreeExplainer(rf_model)
         shap_vals = explainer.shap_values(feature_vec)

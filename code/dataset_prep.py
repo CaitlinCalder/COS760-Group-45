@@ -136,7 +136,7 @@ def truncate_to_sentence(text: str, max_chars: int = 800) -> str:
         last_boundary = boundaries[-1].end()
         return text[:last_boundary].strip()
     else:
-        #No sentence boundary found — fall back to character truncation
+        #No sentence boundary found,fall back to character truncation
         return truncated.strip()
 
 TARGET_LENGTH = 800

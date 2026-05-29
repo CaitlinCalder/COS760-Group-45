@@ -263,7 +263,7 @@ ax.set_xticklabels(labels, fontsize=11)
 ax.set_yticklabels(labels, fontsize=11)
 ax.set_xlabel("Predicted label", fontsize=11)
 ax.set_ylabel("True label", fontsize=11)
-ax.set_title("Confusion Matrix — Zero-Shot Siswati\n(baseline TF-IDF + LR)", fontsize=11)
+ax.set_title("Confusion Matrix-Zero-Shot Siswati\n(baseline TF-IDF + LR)", fontsize=11)
 
 thresh = cm.max() / 2
 for i in range(cm.shape[0]):
