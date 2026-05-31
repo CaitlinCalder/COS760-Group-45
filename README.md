@@ -10,10 +10,11 @@
 2. [Core Features](#core-features)
 3. [Tech Stack](#tech-stack)
 4. [Prerequisites](#prerequisites)
-5. [Installation](#installation)
-6. [Environment Variables](#environment-variables)
-7. [Usage](#usage)
-8. [Project Structure](#project-structure)
+5. [Google Drive Access](#google-drive-access)
+6. [Installation](#installation)
+7. [Environment Variables](#environment-variables)
+8. [Usage](#usage)
+9. [Project Structure](#project-structure)
 
 ---
 
@@ -80,6 +81,26 @@ Ensure the following are installed before proceeding:
 | Google Drive (optional) | — | Phase 2 fine-tuning notebook is designed for Google Colab with Drive mount |
 
 ---
+## Google Drive Access
+
+The easiest way to run this project is through the shared Google Drive folder, which contains the complete repository, datasets, trained models, notebooks, and results:
+
+https://drive.google.com/drive/folders/12Sexw9HhlMKX4YtGL5tTrRSwujUxUoSM?usp=drive_link
+
+To run the project:
+
+1. Open the shared Google Drive folder.
+2. Open `code/main.ipynb` in Google Colab.
+3. Mount Google Drive when prompted.
+4. Run all notebook cells from top to bottom.
+
+The notebook automatically locates the project directory within the shared Drive folder and configures all file paths dynamically. No manual path modifications are required.
+
+Running `main.ipynb` reproduces the complete three-phase machine-generated text detection pipeline, including:
+
+- Phase 1: TF-IDF + Logistic Regression baseline
+- Phase 2: AfroXLMR fine-tuning and cross-lingual evaluation
+- Phase 3: SADiLaR feature augmentation, SHAP analysis, and visualisations
 
 ## Installation
 
