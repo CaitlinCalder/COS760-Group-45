@@ -1,4 +1,4 @@
-# MGT Detection for Bantu Languages — COS760 Group 45
+# MGT Detection for Bantu Languages - COS760 Group 45
 
 > **Detecting Machine-Generated Text in low-resource Bantu languages (isiZulu, isiXhosa, Siswati) using a three-phase NLP pipeline: TF-IDF baseline → AfroXLM-R fine-tuning → SADiLaR morphological feature fusion.**
 
@@ -20,13 +20,13 @@
 
 ## Project Description
 
-This research project tackles the problem of **Machine-Generated Text (MGT) detection** in under-resourced Bantu languages, specifically **isiZulu**, **isiXhosa**, and **Siswati**. Given that modern large language models (LLMs) — including ChatGPT-4o, Claude, and Gemini 2.5 Pro — can now generate fluent text in these languages, the need for reliable automated detection is growing, particularly for academic integrity and media verification contexts.
+This research project tackles the problem of **Machine-Generated Text (MGT) detection** in under-resourced Bantu languages, specifically **isiZulu**, **isiXhosa**, and **Siswati**. Given that modern large language models (LLMs) - including ChatGPT-4o, Claude, and Gemini 2.5 Pro - can now generate fluent text in these languages, the need for reliable automated detection is growing, particularly for academic integrity and media verification contexts.
 
 The system is structured as a **three-phase pipeline**:
 
-- **Phase 1 — Baseline:** A character n-gram TF-IDF + Logistic Regression classifier trained on isiZulu and isiXhosa, then evaluated zero-shot on Siswati.
-- **Phase 2 — Deep Learning:** Fine-tuning of `Davlan/afro-xlmr-base` (an XLM-RoBERTa variant pre-trained on African languages) on the same multilingual corpus, with Optuna hyperparameter search.
-- **Phase 3 — Feature Fusion:** A Random Forest ensemble that combines the AfroXLM-R predicted probabilities with morphological features derived from the **SADiLaR** morphological resource (lexical diversity, morphological coverage, bigram repetition, etc.).
+- **Phase 1 - Baseline:** A character n-gram TF-IDF + Logistic Regression classifier trained on isiZulu and isiXhosa, then evaluated zero-shot on Siswati.
+- **Phase 2 - Deep Learning:** Fine-tuning of `Davlan/afro-xlmr-base` (an XLM-RoBERTa variant pre-trained on African languages) on the same multilingual corpus, with Optuna hyperparameter search.
+- **Phase 3 - Feature Fusion:** A Random Forest ensemble that combines the AfroXLM-R predicted probabilities with morphological features derived from the **SADiLaR** morphological resource (lexical diversity, morphological coverage, bigram repetition, etc.).
 
 A **Streamlit web application** (`app.py`) exposes all three phases as an interactive demo, including SHAP-based explainability visualisations.
 
@@ -37,13 +37,13 @@ Human text is sourced from the **Vukuzenzele** government newsletter corpus (via
 ## Core Features
 
 - **Three-phase detection pipeline** progressing from a lightweight classical baseline to a morphology-aware neural ensemble.
-- **Cross-lingual zero-shot evaluation** — models trained on isiZulu and isiXhosa are tested on unseen Siswati data with no Siswati training examples.
-- **Cross-LLM generalisation analysis** — per-model breakdown of detection performance across ChatGPT, Claude, and Gemini outputs.
-- **SADiLaR morphological feature extraction** — computes lexical diversity, SADiLaR dictionary coverage, morphological diversity ratio, word/bigram repetition rates, and more from language-specific morphological lexica.
+- **Cross-lingual zero-shot evaluation** - models trained on isiZulu and isiXhosa are tested on unseen Siswati data with no Siswati training examples.
+- **Cross-LLM generalisation analysis** - per-model breakdown of detection performance across ChatGPT, Claude, and Gemini outputs.
+- **SADiLaR morphological feature extraction** - computes lexical diversity, SADiLaR dictionary coverage, morphological diversity ratio, word/bigram repetition rates, and more from language-specific morphological lexica.
 - **AfroXLM-R fine-tuning** (`Davlan/afro-xlmr-base`) with Optuna-guided hyperparameter optimisation, cosine learning-rate scheduling, and custom confidence calibration.
-- **Artefact and leakage cleaning** — automated removal of ChatGPT numeric tracking tokens and formulaic MGT sentence openers before training.
-- **Streamlit interactive demo** — paste arbitrary Bantu-language text and receive phase-by-phase detection verdicts with confidence scores and SHAP explanations.
-- **Comprehensive results artefacts** — confusion matrices, calibration curves, training curves, SHAP summary and bar plots, and phase-comparison spider graphs saved to `results/`.
+- **Artefact and leakage cleaning** - automated removal of ChatGPT numeric tracking tokens and formulaic MGT sentence openers before training.
+- **Streamlit interactive demo** - paste arbitrary Bantu-language text and receive phase-by-phase detection verdicts with confidence scores and SHAP explanations.
+- **Comprehensive results artefacts** - confusion matrices, calibration curves, training curves, SHAP summary and bar plots, and phase-comparison spider graphs saved to `results/`.
 - **Reproducible data preparation** script that downloads and merges the Vukuzenzele corpus with the raw MGT CSV files into a single `merged_dataset.csv`.
 
 ---
@@ -78,7 +78,7 @@ Ensure the following are installed before proceeding:
 | pip | 22.0+ | or use conda / mamba |
 | Git | 2.x | for cloning |
 | CUDA (optional) | 11.8+ | GPU acceleration for Phase 2 fine-tuning |
-| Google Drive (optional) | — | Phase 2 fine-tuning notebook is designed for Google Colab with Drive mount |
+| Google Drive (optional) | - | Phase 2 fine-tuning notebook is designed for Google Colab with Drive mount |
 
 ---
 ## Google Drive Access
@@ -89,7 +89,7 @@ https://drive.google.com/drive/folders/12Sexw9HhlMKX4YtGL5tTrRSwujUxUoSM?usp=dri
 
 To run the project:
 
-1. Open the shared Google Drive folder.
+1. Open the shared Google Drive folder, and create shortcut to your drive.
 2. Open `code/main.ipynb` in Google Colab.
 3. Mount Google Drive when prompted.
 4. Run all notebook cells from top to bottom.
@@ -182,7 +182,7 @@ Trains a TF-IDF + Logistic Regression classifier and evaluates in-language and z
 python code/baseline.py
 ```
 
-### Fine-tune AfroXLM-R (Phase 2) — Google Colab
+### Fine-tune AfroXLM-R (Phase 2) - Google Colab
 
 The Phase 2 fine-tuning notebook is designed to run on Google Colab with a GPU runtime. Open it directly:
 
@@ -294,7 +294,7 @@ COS760-Group-45/
 
 ## Key Design Decisions
 
-**Leakage prevention.** During Phase 1, both punctuation and capitalisation are stripped before TF-IDF vectorisation because early analysis showed MGT texts contained ~3× more capital letters and ~2× more commas than human text — trivial surface features that would inflate accuracy without generalising.
+**Leakage prevention.** During Phase 1, both punctuation and capitalisation are stripped before TF-IDF vectorisation because early analysis showed MGT texts contained ~3× more capital letters and ~2× more commas than human text - trivial surface features that would inflate accuracy without generalising.
 
 **Artefact cleaning.** ChatGPT-4o outputs contained numeric tracking tokens matching the pattern `\d+-\d+-\d+` in nearly every row. These were automatically stripped in `dataset_prep.py` before training to prevent the model from exploiting a data-collection artefact.
 
@@ -306,4 +306,4 @@ COS760-Group-45/
 
 ## Contributors
 
-COS760 (Natural Language Processing) — Group 45 [Caitlin Calder (u23678748) Joy Bengu (u25000307) Kelita Naidoo (u20534575)], University of Pretoria.
+COS760 (Natural Language Processing) - Group 45 [Caitlin Calder (u23678748) Joy Bengu (u25000307) Kelita Naidoo (u20534575)], University of Pretoria.
