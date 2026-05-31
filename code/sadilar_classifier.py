@@ -19,7 +19,7 @@ INPUT_FILE = os.path.join(
 # Phase 2 fine-tuned AfroXLMR modek
 AFROXLMR_MODEL_PATH = os.environ.get(
     "AFROXLMR_MODEL_PATH",
-    os.path.join(BASE_PATH, "models", "best_model")
+    os.path.join(BASE_PATH, "code","best from phase 2")
 )
 
 if not os.path.exists(AFROXLMR_MODEL_PATH):
