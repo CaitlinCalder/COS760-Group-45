@@ -42,7 +42,7 @@ Human text is sourced from the **Vukuzenzele** government newsletter corpus (via
 - **SADiLaR morphological feature extraction** - computes lexical diversity, SADiLaR dictionary coverage, morphological diversity ratio, word/bigram repetition rates, and more from language-specific morphological lexica.
 - **AfroXLM-R fine-tuning** (`Davlan/afro-xlmr-base`) with Optuna-guided hyperparameter optimisation, cosine learning-rate scheduling, and custom confidence calibration.
 - **Artefact and leakage cleaning** - automated removal of ChatGPT numeric tracking tokens and formulaic MGT sentence openers before training.
-- **Streamlit interactive demo** - paste arbitrary Bantu-language text and receive phase-by-phase detection verdicts with confidence scores and SHAP explanations.
+- **Interactive demo** - paste arbitrary Bantu-language text and receive phase-by-phase detection verdicts with confidence scores and SHAP explanations.
 - **Comprehensive results artefacts** - confusion matrices, calibration curves, training curves, SHAP summary and bar plots, and phase-comparison spider graphs saved to `results/`.
 - **Reproducible data preparation** script that downloads and merges the Vukuzenzele corpus with the raw MGT CSV files into a single `merged_dataset.csv`.
 
@@ -101,6 +101,7 @@ Running `main.ipynb` reproduces the complete three-phase machine-generated text 
 - Phase 1: TF-IDF + Logistic Regression baseline
 - Phase 2: AfroXLMR fine-tuning and cross-lingual evaluation
 - Phase 3: SADiLaR feature augmentation, SHAP analysis, and visualisations
+- Bonus: Last two code blocks, allow you to insert human or machine generated text and it runs it against all 3 phases
 
 ## Installation
 
