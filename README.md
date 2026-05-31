@@ -25,7 +25,7 @@ This research project tackles the problem of **Machine-Generated Text (MGT) dete
 The system is structured as a **three-phase pipeline**:
 
 - **Phase 1 - Baseline:** A character n-gram TF-IDF + Logistic Regression classifier trained on isiZulu and isiXhosa, then evaluated zero-shot on Siswati.
-- **Phase 2 - Deep Learning:** Fine-tuning of `Davlan/afro-xlmr-base` (an XLM-RoBERTa variant pre-trained on African languages) on the same multilingual corpus, with Optuna hyperparameter search.
+- **Phase 2 - Transfer Learning:** Fine-tuning of `Davlan/afro-xlmr-base` (an XLM-RoBERTa variant pre-trained on African languages) on the same multilingual corpus, with Optuna hyperparameter search.
 - **Phase 3 - Feature Fusion:** A Random Forest ensemble that combines the AfroXLM-R predicted probabilities with morphological features derived from the **SADiLaR** morphological resource (lexical diversity, morphological coverage, bigram repetition, etc.).
 
 A **Streamlit web application** (`app.py`) exposes all three phases as an interactive demo, including SHAP-based explainability visualisations.
