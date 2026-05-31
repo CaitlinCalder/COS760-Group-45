@@ -19,22 +19,19 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 
-BASE_PATH     = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DATASET_FILE  = os.path.join(BASE_PATH, "data", "processed", "merged_dataset.csv")
-FEATURES_FILE = os.path.join(BASE_PATH, "data", "processed", "sadilar_morph_features.csv")
-SADILAR_PATH  = os.path.join(BASE_PATH, "data", "sadilar")
+BASE_PATH= os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DATASET_FILE= os.path.join(BASE_PATH, "data", "processed", "merged_dataset.csv")
+FEATURES_FILE= os.path.join(BASE_PATH, "data", "processed", "sadilar_morph_features.csv")
+SADILAR_PATH = os.path.join(BASE_PATH, "data", "sadilar")
 
 MORPH_FILES = {
-    "zu": os.path.join(SADILAR_PATH, "zulu_morph.txt"),
-    "xh": os.path.join(SADILAR_PATH, "xhosa_morph.txt"),
-    "ss": os.path.join(SADILAR_PATH, "siswati_morph.txt"),
+    "zu":os.path.join(SADILAR_PATH, "zulu_morph.txt"),
+    "xh":os.path.join(SADILAR_PATH, "xhosa_morph.txt"),
+    "ss":os.path.join(SADILAR_PATH, "siswati_morph.txt"),
 }
 
 #update this to wherever your best_model folder is saved locally
-AFROXLMR_MODEL_PATH = os.environ.get(
-    "AFROXLMR_MODEL_PATH",
-    os.path.join(BASE_PATH, "models", "best_model")
-)
+AFROXLMR_MODEL_PATH = os.environ.get("AFROXLMR_MODEL_PATH",os.path.join(BASE_PATH, "models", "best_model"))
 MAX_LENGTH = 512
 
 SADILAR_FEATURE_COLUMNS = [
@@ -45,18 +42,18 @@ SADILAR_FEATURE_COLUMNS = [
 ALL_FEATURE_COLUMNS = ["prob_human", "prob_machine"] + SADILAR_FEATURE_COLUMNS
 
 FEATURE_LABELS = {
-    "prob_human":                  "AfroXLMR: P(Human)",
-    "prob_machine":                "AfroXLMR: P(Machine)",
-    "word_count":                  "Word Count",
-    "matched_words":               "SADiLaR Matched Words",
-    "unmatched_words":             "SADiLaR Unmatched Words",
-    "sadilar_coverage":            "SADiLaR Coverage",
-    "avg_word_length":             "Avg Word Length",
-    "unique_word_ratio":           "Lexical Diversity (Unique Word Ratio)",
+    "prob_human":"AfroXLMR: P(Human)",
+    "prob_machine":"AfroXLMR: P(Machine)",
+    "word_count":"Word Count",
+    "matched_words":"SADiLaR Matched Words",
+    "unmatched_words":"SADiLaR Unmatched Words",
+    "sadilar_coverage":"SADiLaR Coverage",
+    "avg_word_length":"Avg Word Length",
+    "unique_word_ratio":"Lexical Diversity (Unique Word Ratio)",
     "unique_morph_analysis_count": "Unique Morphological Analyses",
-    "morph_diversity_ratio":       "Morphological Diversity Ratio",
-    "word_repetition_rate":        "Word Repetition Rate",
-    "bigram_repetition_rate":      "Bigram Repetition Rate",
+    "morph_diversity_ratio":"Morphological Diversity Ratio",
+    "word_repetition_rate":"Word Repetition Rate",
+    "bigram_repetition_rate":"Bigram Repetition Rate",
 }
 
 st.set_page_config(
@@ -162,20 +159,19 @@ def extract_sadilar_features(text, lookup):
     bigram_rep = (1 - len(set(bigrams)) / len(bigrams)) if bigrams else 0.0
 
     return {
-        "word_count":                  word_count,
-        "matched_words":               matched,
-        "unmatched_words":             word_count - matched,
-        "sadilar_coverage":            matched / word_count,
-        "avg_word_length":             sum(len(t) for t in tokens) / word_count,
-        "unique_word_ratio":           unique_words / word_count,
+        "word_count":word_count,
+        "matched_words":matched,
+        "unmatched_words":word_count - matched,
+        "sadilar_coverage":matched / word_count,
+        "avg_word_length":sum(len(t) for t in tokens) / word_count,
+        "unique_word_ratio":unique_words / word_count,
         "unique_morph_analysis_count": unique_analyses,
-        "morph_diversity_ratio":       unique_analyses / word_count,
-        "word_repetition_rate":        word_repetition_rate,
-        "bigram_repetition_rate":      bigram_rep,
+        "morph_diversity_ratio":unique_analyses / word_count,
+        "word_repetition_rate":word_repetition_rate,
+        "bigram_repetition_rate":bigram_rep,
     }
 
 #to make faster for demo
-
 @st.cache_resource
 def load_morph_lookups():
     lookups = {}
@@ -196,10 +192,10 @@ def load_morph_lookups():
 
 @st.cache_resource
 def load_baseline():
-    df       = pd.read_csv(DATASET_FILE)
+    df= pd.read_csv(DATASET_FILE)
     train_df = df[df["Language_Code"].isin(["zu", "xh"])].copy()
-    X        = train_df["Text_Generated"].apply(clean_for_tfidf)
-    y        = train_df["Label"]
+    X= train_df["Text_Generated"].apply(clean_for_tfidf)
+    y= train_df["Label"]
     X_tr, _, y_tr, _ = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
 
     tfidf = TfidfVectorizer(
@@ -215,17 +211,14 @@ def load_baseline():
 
 @st.cache_resource
 def load_afroxlmr():
-    device    = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    tokenizer = AutoTokenizer.from_pretrained(AFROXLMR_MODEL_PATH)
-    model     = AutoModelForSequenceClassification.from_pretrained(
-        AFROXLMR_MODEL_PATH
-    ).to(device)
+    device= torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    tokenizer= AutoTokenizer.from_pretrained(AFROXLMR_MODEL_PATH)
+    model= AutoModelForSequenceClassification.from_pretrained(AFROXLMR_MODEL_PATH).to(device)
     model.eval()
     return tokenizer, model, device
 
 @st.cache_resource
 def load_phase3_rf():
-    """Train the augmented RF on the precomputed features file."""
     if not os.path.exists(FEATURES_FILE):
         raise FileNotFoundError(
             f"SADiLaR features file not found at:\n  {FEATURES_FILE}\n"
@@ -297,19 +290,19 @@ run = st.button("Run Analysis", type="primary")
 if run and input_text.strip():
 
     with st.spinner("Loading models-this may take a moment on first run..."):
-        tfidf, baseline_clf          = load_baseline()
-        tokenizer, afroxlmr, device  = load_afroxlmr()
-        rf_model                     = load_phase3_rf()
-        morph_lookups                = load_morph_lookups()
+        tfidf, baseline_clf= load_baseline()
+        tokenizer, afroxlmr, device= load_afroxlmr()
+        rf_model= load_phase3_rf()
+        morph_lookups= load_morph_lookups()
 
     #Phase 1
     st.markdown("<hr>", unsafe_allow_html=True)
     st.markdown('<div class="phase-header">Phase 1-Baseline: TF-IDF + Logistic Regression</div>', unsafe_allow_html=True)
 
-    X_vec    = tfidf.transform([clean_for_tfidf(input_text)])
-    p1_pred  = baseline_clf.predict(X_vec)[0]
-    p1_proba = baseline_clf.predict_proba(X_vec)[0]
-    p1_conf  = p1_proba[p1_pred]
+    X_vec= tfidf.transform([clean_for_tfidf(input_text)])
+    p1_pred = baseline_clf.predict(X_vec)[0]
+    p1_proba= baseline_clf.predict_proba(X_vec)[0]
+    p1_conf = p1_proba[p1_pred]
 
     c1, c2, c3 = st.columns([3, 1, 1])
     with c1:

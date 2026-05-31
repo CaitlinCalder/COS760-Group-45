@@ -1,20 +1,4 @@
-#NEW
-"""
-Builds on Phase 2 (fine-tuned AfroXLMR) by combining its predicted
-probabilities with SADiLaR morphological features. This is the actual
-feature augmentation described in the proposal, Phase 2's transfer
-learning output is used as input here, not replaced.
-
-The Random Forest is trained on:
-  - AfroXLMR predicted probabilities (prob_human, prob_machine)
-  - SADiLaR morphological and stylistic features
-
-Training: isiZulu + isiXhosa
-Test (zero-shot): Siswati (cross-language generalisation)
-
-Performance is evaluated using Macro F1, MCC, and compared against
-both Phase 1 (baseline) and Phase 2 (AfroXLMR alone).
-"""
+#Builds on Phase 2 (fine-tuned AfroXLMR) by combining its predicted probabilities with SADiLaR morphological features
 
 import os
 import json

@@ -154,8 +154,7 @@ pipeline = Pipeline([
         analyzer="char_wb",
         min_df=5
     )),
-    ("clf", SGDClassifier(
-        loss="log_loss",
+    ("clf", LogisticRegression(
         class_weight="balanced",
         random_state=42,
         max_iter=1000,

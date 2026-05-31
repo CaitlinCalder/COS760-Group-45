@@ -1,15 +1,4 @@
-#NEW
-"""
-Visualisation and SHAP Analysis for phase 3
-
-Creates plots and SHAP explanations for the Phase 3 augmented classifier.
-SHAP is applied to the combined model (AfroXLMR probabilities + SADiLaR
-features) to reveal whether detection relies on AfroXLMR's learned
-representations or deeper linguistic/morphological structure.
-
-Also produces a 3-phase comparison chart (Phase 1 vs 2 vs 3).
-"""
-
+#Visualisation and SHAP Analysis for phase 3
 import os
 import json
 import torch
