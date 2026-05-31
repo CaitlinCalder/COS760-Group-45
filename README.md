@@ -129,17 +129,7 @@ source .venv/bin/activate       # Linux / macOS
 
 ### 3. Install Python dependencies
 
-There is no `requirements.txt` committed to the repository. Install all required packages manually:
-
-```bash
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118  # GPU
-# or for CPU-only:
-pip install torch torchvision torchaudio
-
-pip install transformers accelerate datasets evaluate \
-            scikit-learn pandas numpy matplotlib \
-            optuna streamlit shap scipy
-```
+pip install -r requirements.txt
 
 ### 4. Prepare the data
 
