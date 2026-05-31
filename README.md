@@ -94,6 +94,13 @@ To run the project:
 3. Mount Google Drive when prompted.
 4. Run all notebook cells from top to bottom.
 
+OR
+1. Unzip folder
+2. Add folder to your drive
+3. Open `code/main.ipynb` in Google Colab.
+3. Mount Google Drive when prompted.
+4. Run all notebook cells from top to bottom.
+   
 The notebook automatically locates the project directory within the shared Drive folder and configures all file paths dynamically. No manual path modifications are required.
 
 Running `main.ipynb` reproduces the complete three-phase machine-generated text detection pipeline, including:
